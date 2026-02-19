@@ -1,0 +1,1981 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>BizGap — Business Opportunity Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<!-- Google Maps API -->
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAu6gS0uhSbYLjqGvpGu0j1OP_ogrdg6dU&libraries=places,geometry,visualization" async defer></script>
+<style>
+:root {
+  --bg: #04080f;
+  --s1: rgba(255,255,255,0.032);
+  --s2: rgba(255,255,255,0.06);
+  --b1: rgba(255,255,255,0.072);
+  --b2: rgba(255,255,255,0.13);
+  --accent: #4f8aff;
+  --accent2: #9b5cff;
+  --gold: #d9a84e;
+  --green: #18c49a;
+  --red: #f05252;
+  --amber: #e8943a;
+  --text: #edf0f8;
+  --muted: rgba(237,240,248,0.44);
+  --display: 'DM Serif Display', Georgia, serif;
+  --ui: 'DM Sans', system-ui, sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--ui);font-size:15px;line-height:1.6}
+
+canvas#bgc{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.55}
+
+/* ── PAGE SYSTEM ── */
+.page{
+  position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;
+  opacity:0;pointer-events:none;
+  transition:opacity .45s cubic-bezier(.4,0,.2,1),transform .45s cubic-bezier(.4,0,.2,1);
+  transform:translateY(16px);
+}
+.page.visible{opacity:1;pointer-events:all;transform:translateY(0)}
+.page.exit{opacity:0;transform:translateY(-14px)}
+
+/* ── NAV ── */
+nav{
+  flex-shrink:0;z-index:20;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 44px;height:64px;
+  background:rgba(4,8,15,.75);backdrop-filter:blur(22px);
+  border-bottom:1px solid var(--b1);
+}
+.logo{
+  font-family:var(--display);font-size:1.5rem;font-weight:400;letter-spacing:-.01em;
+  background:linear-gradient(130deg,var(--accent),var(--accent2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  display:flex;align-items:center;gap:4px;
+}
+.logo-dot{width:7px;height:7px;border-radius:50%;background:var(--gold);margin-left:2px;flex-shrink:0;animation:blink 3s ease infinite;-webkit-text-fill-color:initial}
+@keyframes blink{0%,80%,100%{opacity:1}85%{opacity:.3}}
+.nav-r{display:flex;align-items:center;gap:12px}
+.pill{
+  font-size:.68rem;letter-spacing:.09em;text-transform:uppercase;font-weight:500;
+  padding:5px 13px;border-radius:999px;
+  border:1px solid var(--b2);background:var(--s1);color:var(--muted);
+  font-family:var(--ui);
+}
+.pill-btn{
+  font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;font-weight:600;
+  padding:6px 14px;border-radius:999px;
+  border:1px solid rgba(79,138,255,.3);background:rgba(79,138,255,.08);
+  color:var(--accent);cursor:pointer;font-family:var(--ui);
+  transition:all .2s;display:none;
+}
+.pill-btn:hover{background:rgba(79,138,255,.16)}
+.pill-btn.on{display:inline-flex}
+
+/* ── STEP PROGRESS ── */
+.prog{
+  flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  padding:0 64px;height:56px;
+  background:rgba(4,8,15,.5);backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--b1);gap:0;
+}
+.pi{display:flex;align-items:center;flex:1;max-width:180px;position:relative}
+.pl{flex:1;height:1px;background:var(--b1);transition:background .5s}
+.pl.lit{background:linear-gradient(90deg,var(--green),var(--accent))}
+.pd{
+  width:30px;height:30px;border-radius:50%;flex-shrink:0;
+  border:1.5px solid var(--b2);background:var(--s1);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--ui);font-size:.78rem;font-weight:600;
+  color:var(--muted);transition:all .35s;position:relative;
+}
+.pd.act{border-color:var(--accent);background:rgba(79,138,255,.12);color:var(--accent);box-shadow:0 0 14px rgba(79,138,255,.32)}
+.pd.dn{border-color:var(--green);background:rgba(24,196,154,.12);color:var(--green)}
+.pd-lbl{
+  position:absolute;bottom:-19px;left:50%;transform:translateX(-50%);
+  font-size:.56rem;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--muted);white-space:nowrap;font-family:var(--ui);
+}
+
+/* ── CONTENT SHELL ── */
+.cnt{
+  flex:1;display:flex;align-items:center;justify-content:center;
+  padding:32px 44px;overflow:hidden;
+}
+
+/* ── GLASS CARD ── */
+.card{
+  background:var(--s1);backdrop-filter:blur(28px);
+  border:1px solid var(--b1);border-radius:22px;
+  padding:44px 48px;width:100%;max-width:680px;
+  animation:fadeUp .42s ease both;
+}
+.card:hover{border-color:var(--b2)}
+.card-wide{max-width:920px}
+@keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── TYPE SYSTEM ── */
+.eye{
+  font-size:.64rem;font-weight:600;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--accent);margin-bottom:12px;
+  font-family:var(--ui);display:flex;align-items:center;gap:8px;
+}
+.eye::before{content:'';width:20px;height:1px;background:var(--accent);flex-shrink:0}
+.ctitle{
+  font-family:var(--display);font-size:clamp(1.75rem,3.2vw,2.4rem);
+  font-weight:400;line-height:1.15;letter-spacing:-.01em;margin-bottom:10px;
+}
+.ctitle em{font-style:italic;color:var(--gold)}
+.csub{font-size:.88rem;color:var(--muted);line-height:1.75;max-width:500px;margin-bottom:28px;font-weight:400}
+
+/* ── CHOICE CARDS ── */
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:32px}
+@media(max-width:540px){.choices{grid-template-columns:1fr}}
+.ch{
+  padding:26px 22px;border-radius:15px;
+  border:1.5px solid var(--b1);background:var(--s2);
+  cursor:pointer;transition:all .28s;position:relative;overflow:hidden;
+}
+.ch::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,var(--accent),var(--accent2));opacity:0;transition:opacity .28s;border-radius:13px}
+.ch:hover{border-color:rgba(79,138,255,.45);transform:translateY(-2px)}
+.ch:hover::after{opacity:.055}
+.ch.sel{border-color:var(--accent);box-shadow:0 0 24px rgba(79,138,255,.18)}
+.ch.sel::after{opacity:.08}
+.ch-ic{font-size:2rem;margin-bottom:12px;display:block;position:relative;z-index:1}
+.ch-t{font-family:var(--display);font-size:1.1rem;font-weight:400;margin-bottom:5px;position:relative;z-index:1}
+.ch-d{font-size:.8rem;color:var(--muted);line-height:1.55;position:relative;z-index:1}
+
+/* ── CATEGORY GRID ── */
+.cats{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:16px}
+@media(max-width:580px){.cats{grid-template-columns:repeat(3,1fr)}}
+.cat{
+  padding:13px 6px;border-radius:11px;border:1.5px solid var(--b1);
+  background:var(--s2);cursor:pointer;text-align:center;
+  transition:all .22s;font-family:var(--ui);color:var(--text);font-size:.75rem;font-weight:500;
+}
+.cat .ci{font-size:1.4rem;display:block;margin-bottom:5px}
+.cat:hover{border-color:rgba(79,138,255,.4);background:rgba(79,138,255,.06)}
+.cat.sel{border-color:var(--accent);background:rgba(79,138,255,.1);color:var(--accent)}
+.subs{display:flex;flex-wrap:wrap;gap:7px;margin-top:16px;margin-bottom:24px;min-height:0}
+.sub{
+  padding:6px 14px;border-radius:999px;border:1.5px solid var(--b2);
+  background:var(--s1);cursor:pointer;font-size:.75rem;color:var(--muted);
+  transition:all .2s;font-family:var(--ui);font-weight:500;
+}
+.sub:hover{border-color:rgba(155,92,255,.5);color:var(--accent2)}
+.sub.sel{border-color:var(--accent2);background:rgba(155,92,255,.1);color:var(--accent2)}
+
+/* ── DROPDOWN ── */
+.drop-wrap{position:relative;margin-bottom:16px}
+.drop{
+  width:100%;padding:13px 18px;
+  background:var(--s2);border:1.5px solid var(--b2);
+  border-radius:12px;color:var(--text);
+  font-family:var(--ui);font-size:.9rem;font-weight:400;
+  appearance:none;cursor:pointer;outline:none;
+  transition:border-color .2s;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%234f8aff' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 16px center;padding-right:44px;
+}
+.drop:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,138,255,.1)}
+.drop option{background:#0c1525;color:var(--text)}
+
+/* Mini map */
+#mmap-wrap{
+  width:100%;height:220px;border-radius:13px;border:1px solid var(--b1);
+  overflow:hidden;position:relative;background:#060f1e;
+}
+#mmap{width:100%;height:100%}
+.mov{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:10px;
+  background:rgba(6,15,30,.82);backdrop-filter:blur(4px);
+}
+.mov.gone{display:none}
+.msp{width:28px;height:28px;border-radius:50%;border:3px solid var(--b2);border-top-color:var(--accent);animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── BUTTONS ── */
+.btn{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:12px 26px;border-radius:10px;
+  font-family:var(--ui);font-weight:600;font-size:.84rem;
+  cursor:pointer;border:none;transition:all .22s;letter-spacing:.01em;
+}
+.btn-p{
+  background:linear-gradient(130deg,var(--accent),var(--accent2));
+  color:#fff;box-shadow:0 4px 22px rgba(79,138,255,.26);
+}
+.btn-p:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(79,138,255,.4)}
+.btn-p:disabled{opacity:.32;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-g{background:var(--s2);color:var(--muted);border:1px solid var(--b2)}
+.btn-g:hover{color:var(--text)}
+.brow{display:flex;justify-content:space-between;align-items:center;margin-top:28px;gap:12px}
+
+/* ── LOADING ── */
+#pg-load .cnt{flex-direction:column;text-align:center;gap:0}
+.orb{
+  width:88px;height:88px;border-radius:50%;
+  background:conic-gradient(from 0deg,var(--accent),var(--accent2),var(--gold),var(--accent));
+  animation:spin 2.2s linear infinite;
+  box-shadow:0 0 55px rgba(79,138,255,.4);
+  position:relative;margin:0 auto 28px;
+}
+.orb::after{content:'';position:absolute;inset:7px;border-radius:50%;background:var(--bg)}
+.ltitle{font-family:var(--display);font-size:1.85rem;font-weight:400;margin-bottom:7px}
+.lsub{font-size:.85rem;color:var(--muted);max-width:360px;margin:0 auto 32px;line-height:1.7}
+.lsub span{color:var(--accent)}
+.lsteps{list-style:none;max-width:380px;margin:0 auto;text-align:left}
+.lstep{
+  padding:11px 0;display:flex;align-items:center;gap:12px;
+  font-size:.83rem;color:var(--muted);border-bottom:1px solid var(--b1);
+  opacity:0;transform:translateX(-8px);transition:all .38s;
+}
+.lstep.show{opacity:1;transform:translateX(0);color:var(--text)}
+.lstep.done-s{color:var(--green)}
+
+/* ══════════════════════════════════════
+   RESULTS PAGE
+══════════════════════════════════════ */
+#pg-res .cnt{align-items:flex-start;padding:0;overflow:hidden}
+.res-scroll{width:100%;height:100%;overflow-y:auto;padding:28px 44px 44px}
+.res-scroll::-webkit-scrollbar{width:4px}
+.res-scroll::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
+
+.res-top{
+  display:flex;align-items:flex-end;justify-content:space-between;
+  flex-wrap:wrap;gap:12px;margin-bottom:28px;
+  max-width:980px;margin-left:auto;margin-right:auto;
+}
+.res-ht{
+  font-family:var(--display);font-size:1.85rem;font-weight:400;line-height:1.2;
+}
+.res-ht em{font-style:italic;color:var(--gold)}
+.loc-chip{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:7px 14px;border-radius:999px;
+  background:rgba(79,138,255,.08);border:1px solid rgba(79,138,255,.22);
+  font-size:.74rem;color:var(--accent);font-weight:500;white-space:nowrap;
+}
+
+/* ════ BUSINESS OPPORTUNITY GAP HERO ════ */
+.biz-gap-hero{
+  max-width:980px;margin:0 auto 20px;
+  background:linear-gradient(135deg,rgba(24,196,154,.06) 0%,rgba(79,138,255,.07) 50%,rgba(155,92,255,.06) 100%);
+  border:1px solid rgba(24,196,154,.25);border-radius:22px;padding:36px 40px;
+  position:relative;overflow:hidden;
+}
+.biz-gap-hero::before{
+  content:'';position:absolute;top:-80px;right:-80px;
+  width:300px;height:300px;border-radius:50%;
+  background:radial-gradient(circle,rgba(24,196,154,.1),transparent 70%);
+  pointer-events:none;
+}
+.biz-gap-hero::after{
+  content:'';position:absolute;bottom:-60px;left:-40px;
+  width:220px;height:220px;border-radius:50%;
+  background:radial-gradient(circle,rgba(79,138,255,.08),transparent 70%);
+  pointer-events:none;
+}
+.bgh-label{
+  font-size:.64rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--green);margin-bottom:16px;display:flex;align-items:center;gap:8px;
+  font-family:var(--ui);
+}
+.bgh-label::before{content:'';width:20px;height:1px;background:var(--green)}
+.bgh-title{
+  font-family:var(--display);font-size:1.6rem;font-weight:400;margin-bottom:8px;
+  position:relative;z-index:1;
+}
+.bgh-sub{font-size:.875rem;color:var(--muted);line-height:1.75;margin-bottom:28px;max-width:680px;position:relative;z-index:1}
+
+/* Gap Score Gauge */
+.gap-gauge-row{display:flex;align-items:center;gap:36px;margin-bottom:28px;flex-wrap:wrap;position:relative;z-index:1}
+.gap-gauge{position:relative;width:100px;height:100px;flex-shrink:0}
+.gap-gauge svg{transform:rotate(-90deg)}
+.gauge-val{
+  position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  font-family:var(--display);font-size:1.7rem;font-weight:400;line-height:1;
+}
+.gauge-val span{font-size:.6rem;color:var(--muted);font-family:var(--ui);font-weight:500;letter-spacing:.08em;text-transform:uppercase;margin-top:2px}
+.gap-gauge-info{flex:1;min-width:200px}
+.gap-gauge-info h3{font-family:var(--display);font-size:1.2rem;font-weight:400;margin-bottom:6px}
+.gap-gauge-info p{font-size:.83rem;color:var(--muted);line-height:1.7}
+
+/* Gap Dimension Bars */
+.gap-dims{display:flex;flex-direction:column;gap:11px;margin-bottom:24px;position:relative;z-index:1}
+.gdim-row{display:grid;grid-template-columns:170px 1fr 52px;align-items:center;gap:14px}
+.gdim-lbl{font-size:.78rem;color:var(--muted);font-weight:500;text-align:right;font-family:var(--ui)}
+.gdim-track{height:8px;border-radius:999px;background:var(--s2);overflow:hidden;position:relative}
+.gdim-fill{height:100%;border-radius:999px;transition:width 1.3s cubic-bezier(.4,0,.2,1);position:relative}
+.gdim-fill::after{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.15));border-radius:999px}
+.gdim-val{font-size:.75rem;font-weight:600;color:var(--text);font-family:var(--ui)}
+
+/* Gap Metrics Row */
+.gap-metrics-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;position:relative;z-index:1}
+@media(max-width:700px){.gap-metrics-row{grid-template-columns:repeat(2,1fr)}}
+.gm{
+  background:rgba(255,255,255,.04);border:1px solid var(--b1);border-radius:14px;padding:16px 18px;
+}
+.gm-val{font-family:var(--display);font-size:1.7rem;font-weight:400;margin-bottom:3px;line-height:1}
+.gm-lbl{font-size:.67rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:500;font-family:var(--ui)}
+.gm-sub{font-size:.7rem;color:var(--muted);margin-top:4px;font-family:var(--ui)}
+
+/* ════ OPPORTUNITY CARDS ════ */
+.opp-section{max-width:980px;margin:0 auto 20px}
+.sec-head{
+  display:flex;align-items:center;gap:10px;margin-bottom:18px;
+}
+.sec-head-t{font-family:var(--display);font-size:1.3rem;font-weight:400}
+.sec-count{
+  font-size:.68rem;font-weight:600;letter-spacing:.06em;
+  padding:3px 10px;border-radius:999px;
+  background:rgba(79,138,255,.1);border:1px solid rgba(79,138,255,.2);color:var(--accent);
+  font-family:var(--ui);
+}
+.opps{display:flex;flex-direction:column;gap:12px}
+.opp-card{
+  border:1px solid var(--b1);border-radius:16px;
+  background:var(--s1);overflow:hidden;
+  display:grid;grid-template-columns:auto 1fr auto;
+  transition:all .25s;cursor:default;
+}
+.opp-card:hover{border-color:rgba(79,138,255,.3);box-shadow:0 4px 24px rgba(79,138,255,.08);transform:translateY(-1px)}
+.opp-rank{
+  width:56px;display:flex;align-items:center;justify-content:center;
+  font-family:var(--display);font-size:1.5rem;font-weight:400;
+  color:var(--b2);flex-shrink:0;
+  border-right:1px solid var(--b1);padding:20px 0;
+}
+.opp-body{padding:18px 22px}
+.opp-top{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px;flex-wrap:wrap}
+.opp-name{font-family:var(--display);font-size:1.05rem;font-weight:400;flex:1}
+.opp-gap-badge{
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:.67rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+  padding:3px 10px;border-radius:999px;white-space:nowrap;flex-shrink:0;
+  font-family:var(--ui);
+}
+.badge-high{background:rgba(24,196,154,.1);border:1px solid rgba(24,196,154,.25);color:var(--green)}
+.badge-med{background:rgba(217,168,78,.1);border:1px solid rgba(217,168,78,.25);color:var(--gold)}
+.badge-low{background:rgba(240,82,82,.1);border:1px solid rgba(240,82,82,.25);color:var(--red)}
+.opp-why{font-size:.82rem;color:var(--muted);line-height:1.7;margin-bottom:10px}
+.opp-anchor{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:.72rem;color:var(--accent2);
+  background:rgba(155,92,255,.08);border:1px solid rgba(155,92,255,.15);
+  padding:3px 10px;border-radius:999px;font-family:var(--ui);
+}
+.opp-meta{
+  display:flex;flex-direction:column;align-items:flex-end;justify-content:center;
+  padding:18px 20px;border-left:1px solid var(--b1);min-width:110px;gap:8px;flex-shrink:0;
+}
+.opp-inv-lbl{font-size:.6rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:500;font-family:var(--ui)}
+.opp-inv{font-family:var(--display);font-size:1rem;font-weight:400;color:var(--gold)}
+.opp-risk-dot{width:8px;height:8px;border-radius:50%;margin-left:auto}
+
+/* ════ 2-COL GRID ════ */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:980px;margin:0 auto 20px}
+@media(max-width:680px){.two-col{grid-template-columns:1fr}}
+.full-col{grid-column:1/-1}
+.rc{
+  background:var(--s1);border:1px solid var(--b1);border-radius:16px;padding:24px 26px;
+  position:relative;overflow:hidden;transition:all .25s;
+}
+.rc::after{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,var(--accent),var(--accent2));
+  opacity:0;transition:opacity .25s;
+}
+.rc:hover{border-color:var(--b2);transform:translateY(-1px)}
+.rc:hover::after{opacity:1}
+.rc-ey{font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;font-weight:500;font-family:var(--ui)}
+.rc-t{font-family:var(--display);font-size:1.1rem;font-weight:400;margin-bottom:8px}
+.rc-b{font-size:.82rem;color:var(--muted);line-height:1.75}
+
+/* Score ring */
+.sr-wrap{display:flex;align-items:center;gap:18px}
+.sr{width:70px;height:70px;position:relative;flex-shrink:0}
+.sr svg{transform:rotate(-90deg)}
+.sr-n{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--display);font-weight:400;font-size:1.1rem;color:var(--accent)}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.tag{padding:3px 11px;border-radius:999px;font-size:.68rem;font-weight:500;border:1px solid;font-family:var(--ui)}
+.tb{color:var(--accent);border-color:rgba(79,138,255,.26);background:rgba(79,138,255,.07)}
+.tp{color:var(--accent2);border-color:rgba(155,92,255,.26);background:rgba(155,92,255,.07)}
+.tg{color:var(--gold);border-color:rgba(217,168,78,.26);background:rgba(217,168,78,.07)}
+.tn{color:var(--green);border-color:rgba(24,196,154,.26);background:rgba(24,196,154,.07)}
+.tr-tag{color:var(--red);border-color:rgba(240,82,82,.26);background:rgba(240,82,82,.07)}
+
+/* Risk bar */
+.rbar{height:6px;border-radius:999px;background:var(--s2);margin-top:9px;overflow:hidden}
+.rfill{height:100%;border-radius:999px;transition:width 1.2s cubic-bezier(.4,0,.2,1)}
+
+/* Anchors */
+.anchs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.anch{
+  padding:10px 12px;border-radius:9px;background:var(--s2);border:1px solid var(--b1);
+  display:flex;align-items:center;gap:9px;font-size:.76rem;
+}
+.anch-ic{font-size:1.1rem;flex-shrink:0}
+.anch-n{font-weight:500;font-size:.76rem;font-family:var(--ui)}
+.anch-t{color:var(--muted);font-size:.68rem;margin-top:1px;font-family:var(--ui)}
+
+/* Schemes */
+.scs{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px}
+@media(max-width:580px){.scs{grid-template-columns:1fr}}
+.sc{padding:16px 18px;border-radius:12px;background:var(--s2);border:1px solid var(--b1);transition:all .22s}
+.sc:hover{border-color:rgba(217,168,78,.3);box-shadow:0 0 16px rgba(217,168,78,.08)}
+.sc-h{display:flex;align-items:center;gap:9px;margin-bottom:7px}
+.sc-lo{font-size:1.25rem}
+.sc-nm{font-family:var(--display);font-weight:400;font-size:.9rem}
+.sc-b{font-size:.77rem;color:var(--muted);line-height:1.65}
+.sc-amt{font-size:.76rem;color:var(--green);font-weight:600;margin-top:7px;font-family:var(--ui)}
+.sc-lk{display:inline-flex;align-items:center;gap:4px;margin-top:7px;font-size:.7rem;color:var(--accent);text-decoration:none;font-family:var(--ui)}
+.sc-lk:hover{text-decoration:underline}
+
+/* ════ HEATMAP ════ */
+.hmap-wrap{width:100%;height:300px;border-radius:14px;overflow:hidden;border:1px solid var(--b1);background:#04090f;margin-top:12px;position:relative}
+.hmap-legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:12px;align-items:center}
+.hl{display:flex;align-items:center;gap:7px;font-size:.72rem;color:var(--muted);font-weight:400;font-family:var(--ui)}
+.hld{width:11px;height:11px;border-radius:50%;flex-shrink:0;box-shadow:0 0 6px currentColor}
+
+/* ── HERO PAGE ── */
+#pg-hero .cnt{flex-direction:column;text-align:center;align-items:center}
+.he-badge{
+  display:inline-flex;align-items:center;gap:8px;
+  font-size:.66rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--accent);background:rgba(79,138,255,.08);border:1px solid rgba(79,138,255,.2);
+  padding:6px 16px;border-radius:999px;margin-bottom:24px;font-family:var(--ui);
+}
+.he-badge::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(1.5)}}
+.he-h{
+  font-family:var(--display);font-size:clamp(2.6rem,5vw,4.6rem);
+  font-weight:400;line-height:1.05;letter-spacing:-.01em;margin-bottom:18px;
+}
+.he-h em{font-style:italic;background:linear-gradient(130deg,var(--accent),var(--accent2),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.he-sub{font-size:.95rem;color:var(--muted);max-width:460px;line-height:1.8;margin-bottom:40px;font-weight:400}
+.he-cta{
+  display:inline-flex;align-items:center;gap:10px;
+  padding:15px 38px;border-radius:999px;
+  background:linear-gradient(130deg,var(--accent),var(--accent2));
+  color:#fff;font-family:var(--ui);font-size:.9rem;font-weight:600;
+  cursor:pointer;border:none;box-shadow:0 0 40px rgba(79,138,255,.32);
+  transition:transform .2s,box-shadow .2s;letter-spacing:.02em;
+}
+.he-cta:hover{transform:translateY(-2px) scale(1.02);box-shadow:0 0 60px rgba(79,138,255,.48)}
+.he-cta:hover svg{transform:translateX(3px)}
+.he-cta svg{transition:transform .2s}
+.he-stats{display:flex;gap:44px;flex-wrap:wrap;justify-content:center;margin-top:52px}
+.hs{text-align:center}
+.hs-n{font-family:var(--display);font-size:2rem;font-weight:400;background:linear-gradient(130deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hs-l{font-size:.64rem;color:var(--muted);margin-top:3px;text-transform:uppercase;letter-spacing:.09em;font-weight:500;font-family:var(--ui)}
+
+/* ── TOAST ── */
+#toast{
+  position:fixed;bottom:24px;right:24px;z-index:9999;
+  padding:12px 18px;border-radius:11px;
+  background:rgba(10,18,36,.96);backdrop-filter:blur(16px);
+  border:1px solid var(--b2);color:var(--text);
+  font-size:.82rem;display:flex;align-items:center;gap:9px;
+  transform:translateY(68px);opacity:0;
+  transition:all .4s cubic-bezier(.34,1.56,.64,1);max-width:280px;
+  font-family:var(--ui);
+}
+#toast.show{transform:translateY(0);opacity:1}
+</style>
+</head>
+<body>
+
+<canvas id="bgc"></canvas>
+
+<!-- ═══ PAGE: HERO ═══ -->
+<div class="page visible" id="pg-hero">
+  <nav>
+    <div class="logo">BizGap<span class="logo-dot"></span></div>
+    <div class="pill">📍 Bhubaneswar, Odisha</div>
+  </nav>
+  <div class="cnt">
+    <div>
+      <div class="he-badge">AI-Powered Business Gap Intelligence</div>
+      <h1 class="he-h">Find the <em>Gap.</em><br/>Own the Market.</h1>
+      <p class="he-sub">Discover untapped business opportunities in Bhubaneswar  mapped by locality, anchored by real demand, powered by AI.</p>
+      <button class="he-cta" onclick="go('pg-s1')">
+        Begin Analysis
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </button>
+      <div class="he-stats">
+        <div class="hs"><div class="hs-n" data-t="47">0</div><div class="hs-l">Localities</div></div>
+        <div class="hs"><div class="hs-n" data-t="200">0</div><div class="hs-l">Business Types</div></div>
+        <div class="hs"><div class="hs-n" data-t="35">0</div><div class="hs-l">Govt Schemes</div></div>
+        <div class="hs"><div class="hs-n" data-t="80" data-s="%">0</div><div class="hs-l">Accuracy</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PAGE: STEP 1 ═══ -->
+<div class="page" id="pg-s1">
+  <nav>
+    <div class="logo">BizGap<span class="logo-dot"></span></div>
+    <div class="nav-r">
+      <div class="pill">📍 Bhubaneswar</div>
+      <button class="pill-btn on" onclick="go('pg-hero')">← Home</button>
+    </div>
+  </nav>
+  <div class="prog">
+    <div class="pi"><div class="pl" style="visibility:hidden"></div><div class="pd act" id="d1">1<span class="pd-lbl">Status</span></div><div class="pl" id="l1"></div></div>
+    <div class="pi"><div class="pl" id="l1b"></div><div class="pd" id="d2">2<span class="pd-lbl">Sector</span></div><div class="pl" id="l2"></div></div>
+    <div class="pi"><div class="pl" id="l2b"></div><div class="pd" id="d3">3<span class="pd-lbl">Location</span></div><div class="pl" id="l3"></div></div>
+    <div class="pi"><div class="pl" id="l3b"></div><div class="pd" id="d4">4<span class="pd-lbl">Analysis</span></div><div class="pl" style="visibility:hidden"></div></div>
+  </div>
+  <div class="cnt">
+    <div class="card">
+      <div class="eye">Step 1 of 3</div>
+      <h2 class="ctitle">Where do you <em>stand?</em></h2>
+      <p class="csub">Tell us your starting point so our AI can tailor the gap analysis to your exact situation.</p>
+      <div class="choices">
+        <div class="ch" onclick="selStatus('existing',this)">
+          <span class="ch-ic">🏢</span>
+          <div class="ch-t">I Own a Business</div>
+          <div class="ch-d">Already operating — want to find nearby gaps, growth zones, or complementary opportunities.</div>
+        </div>
+        <div class="ch" onclick="selStatus('new',this)">
+          <span class="ch-ic">🚀</span>
+          <div class="ch-t">Starting Fresh</div>
+          <div class="ch-d">Have capital and want AI to reveal exactly what's missing in your chosen locality.</div>
+        </div>
+      </div>
+      <div class="brow"><div></div><button class="btn btn-p" id="bs1" disabled onclick="go('pg-s2')">Continue <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PAGE: STEP 2 ═══ -->
+<div class="page" id="pg-s2">
+  <nav>
+    <div class="logo">BizGap<span class="logo-dot"></span></div>
+    <div class="nav-r">
+      <div class="pill">📍 Bhubaneswar</div>
+      <button class="pill-btn on" onclick="reset()">↺ Restart</button>
+    </div>
+  </nav>
+  <div class="prog">
+    <div class="pi"><div class="pl" style="visibility:hidden"></div><div class="pd dn">✓<span class="pd-lbl">Status</span></div><div class="pl lit"></div></div>
+    <div class="pi"><div class="pl lit"></div><div class="pd act">2<span class="pd-lbl">Sector</span></div><div class="pl"></div></div>
+    <div class="pi"><div class="pl"></div><div class="pd">3<span class="pd-lbl">Location</span></div><div class="pl"></div></div>
+    <div class="pi"><div class="pl"></div><div class="pd">4<span class="pd-lbl">Analysis</span></div><div class="pl" style="visibility:hidden"></div></div>
+  </div>
+  <div class="cnt">
+    <div class="card">
+      <div class="eye">Step 2 of 3</div>
+      <h2 class="ctitle" id="s2h">What's your <em>sector?</em></h2>
+      <p class="csub" id="s2s">Pick a category so the AI can focus its gap scan on your specific market.</p>
+      <div class="cats">
+        <button class="cat" onclick="selCat('food','🍽️','Food & Beverage',this)"><span class="ci">🍽️</span>Food & Bev</button>
+        <button class="cat" onclick="selCat('retail','🛍️','Retail',this)"><span class="ci">🛍️</span>Retail</button>
+        <button class="cat" onclick="selCat('healthcare','🏥','Healthcare',this)"><span class="ci">🏥</span>Healthcare</button>
+        <button class="cat" onclick="selCat('education','📚','Education',this)"><span class="ci">📚</span>Education</button>
+        <button class="cat" onclick="selCat('tech','💻','Tech & IT',this)"><span class="ci">💻</span>Tech & IT</button>
+        <button class="cat" onclick="selCat('services','🔧','Services',this)"><span class="ci">🔧</span>Services</button>
+        <button class="cat" onclick="selCat('hospitality','🏨','Hospitality',this)"><span class="ci">🏨</span>Hospitality</button>
+        <button class="cat" onclick="selCat('beauty','💅','Beauty',this)"><span class="ci">💅</span>Beauty</button>
+        <button class="cat" onclick="selCat('logistics','🚚','Logistics',this)"><span class="ci">🚚</span>Logistics</button>
+        <button class="cat" onclick="selCat('finance','💰','Finance',this)"><span class="ci">💰</span>Finance</button>
+        <button class="cat" onclick="selCat('real_estate','🏘️','Real Estate',this)"><span class="ci">🏘️</span>Real Estate</button>
+        <button class="cat" onclick="selCat('other','✨','Other',this)"><span class="ci">✨</span>Other</button>
+      </div>
+      <div class="subs" id="sub-wrap"></div>
+      <div class="brow">
+        <button class="btn btn-g" onclick="go('pg-s1')">← Back</button>
+        <button class="btn btn-p" id="bs2" disabled onclick="go('pg-s3')">Continue <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PAGE: STEP 3 ═══ -->
+<div class="page" id="pg-s3">
+  <nav>
+    <div class="logo">BizGap<span class="logo-dot"></span></div>
+    <div class="nav-r">
+      <div class="pill">📍 Bhubaneswar</div>
+      <button class="pill-btn on" onclick="reset()">↺ Restart</button>
+    </div>
+  </nav>
+  <div class="prog">
+    <div class="pi"><div class="pl" style="visibility:hidden"></div><div class="pd dn">✓<span class="pd-lbl">Status</span></div><div class="pl lit"></div></div>
+    <div class="pi"><div class="pl lit"></div><div class="pd dn">✓<span class="pd-lbl">Sector</span></div><div class="pl lit"></div></div>
+    <div class="pi"><div class="pl lit"></div><div class="pd act">3<span class="pd-lbl">Location</span></div><div class="pl"></div></div>
+    <div class="pi"><div class="pl"></div><div class="pd">4<span class="pd-lbl">Analysis</span></div><div class="pl" style="visibility:hidden"></div></div>
+  </div>
+  <div class="cnt">
+    <div class="card">
+      <div class="eye">Step 3 of 3</div>
+      <h2 class="ctitle">Choose your <em>locality</em></h2>
+      <p class="csub">Select the area you want to operate in. We analyse a 4–5 km radius for demand signals, anchor points and business voids.</p>
+      <div class="drop-wrap">
+        <select class="drop" id="loc-sel" onchange="onLoc(this)">
+          <option value="">— Select a Locality in Bhubaneswar —</option>
+          <optgroup label="North Bhubaneswar">
+            <option>Patia</option><option>Chandrasekharpur</option><option>Jaydev Vihar</option>
+            <option>Damana</option><option>Infocity</option><option>KIIT Area</option>
+            <option>KISS Area</option><option>Niladri Vihar</option><option>Dumduma</option>
+            <option>Aiginia</option><option>Tamando</option>
+          </optgroup>
+          <optgroup label="Central Bhubaneswar">
+            <option>Nayapalli</option><option>IRC Village</option><option>Saheed Nagar</option>
+            <option>Kharavela Nagar</option><option>Acharya Vihar</option><option>Vani Vihar</option>
+            <option>Shastri Nagar</option><option>Master Canteen</option><option>Bapuji Nagar</option>
+            <option>Satya Nagar</option><option>Laxmi Sagar</option>
+            <option>Unit 1</option><option>Unit 2</option><option>Unit 3</option><option>Unit 4</option><option>Unit 6</option><option>Unit 9</option>
+          </optgroup>
+          <optgroup label="East Bhubaneswar">
+            <option>Rasulgarh</option><option>Mancheswar</option><option>Kalinga Nagar</option>
+            <option>Bomikhal</option><option>Palasuni</option><option>Gadakana</option><option>Cuttack Road</option>
+          </optgroup>
+          <optgroup label="South Bhubaneswar">
+            <option>Pokhariput</option><option>Baramunda</option><option>Khandagiri</option>
+            <option>Udaygiri</option><option>Sundarpada</option><option>Sisupalgarh</option><option>Jatni</option>
+          </optgroup>
+          <optgroup label="Landmark Areas">
+            <option>Airport Area</option><option>Railway Station Area</option>
+            <option>AIIMS Bhubaneswar</option><option>SUM Hospital Area</option>
+            <option>Old Town</option><option>Lingaraj Area</option>
+          </optgroup>
+        </select>
+      </div>
+<div id="mmap-wrap">
+        <div id="mmap" style="width:100%;height:100%"></div>
+        <div class="mov" id="mmap-ov">
+          <div style="font-size:1.8rem">🗺️</div>
+          <div style="font-size:.78rem;color:var(--muted)">Select a locality to preview</div>
+        </div>
+      </div>
+      <div class="brow">
+        <button class="btn btn-g" onclick="go('pg-s2')">← Back</button>
+        <button class="btn btn-p" id="bs3" disabled onclick="startAnalysis()">🔍 Run Gap Analysis</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PAGE: LOADING ═══ -->
+<div class="page" id="pg-load">
+  <nav><div class="logo">BizGap<span class="logo-dot"></span></div><div class="pill">Scanning…</div></nav>
+  <div class="cnt" style="flex-direction:column">
+    <div style="text-align:center">
+      <div class="orb"></div>
+      <div class="ltitle">AI Scanning Your Area</div>
+      <div class="lsub">Running business gap analysis for <span id="ll"></span>…</div>
+      <ul class="lsteps">
+        <li class="lstep"><span>📡</span> Fetching nearby anchor points</li>
+        <li class="lstep"><span>📊</span> Mapping competitor density in 5km radius</li>
+        <li class="lstep"><span>🧠</span> Identifying business voids & demand gaps</li>
+        <li class="lstep"><span>💼</span> Matching government & bank schemes</li>
+        <li class="lstep"><span>🗺️</span> Generating opportunity heatmap</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PAGE: RESULTS ═══ -->
+<div class="page" id="pg-res">
+  <nav>
+    <div class="logo">BizGap<span class="logo-dot"></span></div>
+    <div class="nav-r">
+      <div class="pill" id="resnav">📍 —</div>
+      <button class="pill-btn on" onclick="reset()">↺ New Analysis</button>
+    </div>
+  </nav>
+  <div class="cnt" style="padding:0;overflow:hidden">
+    <div class="res-scroll">
+
+      <!-- Header -->
+      <div class="res-top">
+        <div>
+          <div style="font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:600;margin-bottom:7px;font-family:var(--ui)">Analysis Complete</div>
+          <div class="res-ht">Business Gap Report — <em id="res-loc-t"></em></div>
+        </div>
+        <div class="loc-chip">📍 <span id="res-loc"></span></div>
+      </div>
+
+      <!-- ════ BUSINESS OPPORTUNITY GAP HERO ════ -->
+      <div class="biz-gap-hero" id="biz-gap-hero-panel">
+        <div class="bgh-label">Business Opportunity Gap Analysis</div>
+        <div class="bgh-title" id="bgh-title">—</div>
+        <div class="bgh-sub" id="bgh-sub">—</div>
+
+        <!-- Gap Score Gauge + Info -->
+        <div class="gap-gauge-row">
+          <div class="gap-gauge">
+            <svg width="100" height="100" viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="7"/>
+              <circle id="gauge-arc" cx="50" cy="50" r="42" fill="none" stroke="var(--green)" stroke-width="7" stroke-dasharray="0 264" stroke-linecap="round"/>
+            </svg>
+            <div class="gauge-val">
+              <span id="gauge-score" style="color:var(--green)">—</span>
+              <span>Gap Score</span>
+            </div>
+          </div>
+          <div class="gap-gauge-info">
+            <h3 id="gap-intensity-label">Market Void Detected</h3>
+            <p id="gap-narrative">Analysing your selected market…</p>
+          </div>
+        </div>
+
+        <!-- Gap Dimension Bars -->
+        <div class="gap-dims" id="gap-dims"></div>
+
+        <!-- Metrics Row -->
+        <div class="gap-metrics-row" id="gap-metrics"></div>
+      </div>
+
+      <!-- ════ OPPORTUNITY CARDS ════ -->
+      <div class="opp-section">
+        <div class="sec-head">
+          <div class="sec-head-t">Identified Business Opportunities</div>
+          <div class="sec-count" id="opp-count">0 Found</div>
+        </div>
+        <div class="opps" id="opps-list"></div>
+      </div>
+
+      <!-- ════ GRID: Score + Risk + Anchors + Schemes ════ -->
+      <div class="two-col" id="two-col-grid"></div>
+
+<!-- ════ HEATMAP ════ -->
+      <div class="rc full-col" style="max-width:980px;margin:0 auto 20px">
+        <div class="rc-ey">Opportunity Heatmap</div>
+        <div class="rc-t">Business Density & Gap Zones — <span style="font-weight:400;font-family:var(--ui);font-size:.8rem;color:var(--muted)" id="hmap-sub"></span></div>
+        <div class="hmap-wrap" style="position:relative">
+          <div id="hmap" style="width:100%;height:300px"></div>
+          <div id="hmap-loading" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(4,8,15,.9);z-index:10">
+            <div class="msp"></div>
+            <div style="font-size:.78rem;color:var(--muted);margin-top:10px">Loading heatmap...</div>
+          </div>
+        </div>
+        <div class="hmap-legend">
+          <div class="hl"><div class="hld" style="background:#f05252;box-shadow:0 0 6px #f05252"></div>High Competition Zone</div>
+          <div class="hl"><div class="hld" style="background:#e8943a;box-shadow:0 0 6px #e8943a"></div>Partial Gap / Moderate</div>
+          <div class="hl"><div class="hld" style="background:#18c49a;box-shadow:0 0 6px #18c49a"></div>Clear Business Void</div>
+          <div class="hl"><div class="hld" style="background:#4f8aff;box-shadow:0 0 6px #4f8aff"></div>Anchor Point</div>
+          <div class="hl"><div class="hld" style="background:#9b5cff;box-shadow:0 0 6px #9b5cff"></div>Your Location</div>
+        </div>
+      </div>
+
+      <div style="text-align:center;padding:8px 0 16px">
+        <button class="btn btn-g" onclick="reset()">↺ Start New Analysis</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"><span id="ti">✅</span><span id="tm"></span></div>
+
+<script>
+// ── BG CANVAS ──
+(()=>{
+  const c=document.getElementById('bgc'),x=c.getContext('2d');let W,H,o=[];
+  const res=()=>{W=c.width=innerWidth;H=c.height=innerHeight};
+  const mk=()=>({x:Math.random()*W,y:Math.random()*H,r:170+Math.random()*260,vx:(Math.random()-.5)*.22,vy:(Math.random()-.5)*.22,
+    col:['79,138,255','155,92,255','217,168,78'][Math.floor(Math.random()*3)],a:.05+Math.random()*.07});
+  res();for(let i=0;i<6;i++)o.push(mk());addEventListener('resize',res);
+  const draw=()=>{
+    x.clearRect(0,0,W,H);
+    o.forEach(p=>{const g=x.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r);g.addColorStop(0,`rgba(${p.col},${p.a})`);g.addColorStop(1,`rgba(${p.col},0)`);
+      x.beginPath();x.arc(p.x,p.y,p.r,0,Math.PI*2);x.fillStyle=g;x.fill();
+      p.x+=p.vx;p.y+=p.vy;if(p.x<-p.r||p.x>W+p.r)p.vx*=-1;if(p.y<-p.r||p.y>H+p.r)p.vy*=-1;});
+    requestAnimationFrame(draw);
+  };draw();
+})();
+
+// ── COUNTERS ──
+(()=>{document.querySelectorAll('[data-t]').forEach(el=>{const T=+el.dataset.t,s=el.dataset.s||'';let v=0,step=T/60;const iv=setInterval(()=>{v=Math.min(v+step,T);el.textContent=Math.round(v)+s;if(v>=T)clearInterval(iv);},16);});})();
+
+// ── ROUTER ──
+let cur='pg-hero';
+function go(id){
+  const f=document.getElementById(cur);f.classList.add('exit');
+  setTimeout(()=>{f.classList.remove('visible','exit')},320);
+  setTimeout(()=>{const t=document.getElementById(id);t.classList.add('visible');cur=id;},340);
+}
+
+// ── STATE ──
+const S={status:null,cat:null,catLabel:null,sub:null,loc:null};
+
+// ── STEP 1 ──
+function selStatus(v,el){
+  S.status=v;document.querySelectorAll('.ch').forEach(c=>c.classList.remove('sel'));el.classList.add('sel');
+  document.getElementById('bs1').disabled=false;
+  if(v==='new'){document.getElementById('s2h').innerHTML='What sector <em>interests you?</em>';document.getElementById('s2s').textContent='Pick a sector so the AI can zero in on market gaps for you.';}
+  else{document.getElementById('s2h').innerHTML='What field is your <em>business in?</em>';document.getElementById('s2s').textContent='Select your category so the AI can find gaps and growth zones nearby.';}
+}
+
+// ── STEP 2 ──
+const SUBS={
+  food:['Cloud Kitchen','Bakery','Restaurant','Tiffin Service','Cafe','Ice Cream Parlour','Catering','Food Truck','Sweet Shop'],
+  retail:['Electronics Shop','Mobile & Accessories','Clothing Boutique','Grocery Store','Gift Shop','Stationery','Sports Store','Home Decor','Electrical Goods'],
+  healthcare:['Clinic','Pharmacy','Diagnostic Lab','Physiotherapy','Dental Clinic','Optical Store','Ayurveda Center'],
+  education:['Coaching Institute','Preschool','Skill Training','Library','Computer Classes','Arts Academy'],
+  tech:['IT Services','Software Company','Cybercafe','Mobile Repair','CCTV/Security','Web Agency'],
+  services:['Laundry','Car Wash','Repairs','Salon','Plumbing & Electrical','Pest Control','Event Management'],
+  hospitality:['Budget Hotel','Guest House','Service Apartment','Hostel','Co-working Space'],
+  beauty:['Salon','Spa','Nail Studio','Fitness Studio','Yoga Center','Dermatology Clinic'],
+  logistics:['Courier Service','Packers & Movers','Warehouse','Last-Mile Delivery','Fleet Rental'],
+  finance:['Loan Agency','Insurance','Mutual Fund Advisor','Tax Consulting','CA Services'],
+  real_estate:['Broker','Property Management','Co-working','Interior Design','Architecture'],
+  other:['Agriculture','Printing','Manufacturing','Handicrafts','Event Venue','Pet Services']
+};
+
+function selCat(k,ic,lb,el){
+  S.cat=k;S.catLabel=lb;S.sub=null;
+  document.querySelectorAll('.cat').forEach(b=>b.classList.remove('sel'));el.classList.add('sel');
+  const w=document.getElementById('sub-wrap'),ss=SUBS[k]||[];
+  w.innerHTML=ss.length?'<div style="font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;font-weight:600;font-family:var(--ui)">Narrow it down (optional)</div>'+ss.map(s=>`<button class="sub" onclick="selSub('${s}',this)">${s}</button>`).join(''):'';
+  document.getElementById('bs2').disabled=false;
+}
+function selSub(v,el){S.sub=v;document.querySelectorAll('.sub').forEach(b=>b.classList.remove('sel'));el.classList.add('sel')}
+
+// ── STEP 3 ──
+function onLoc(sel){S.loc=sel.value;document.getElementById('bs3').disabled=!sel.value;if(sel.value)showMap(sel.value);}
+function showMap(loc){
+  const ov=document.getElementById('mmap-ov');
+  ov.innerHTML='<div class="msp"></div><div style="font-size:.76rem;color:var(--muted)">Loading…</div>';
+  ov.classList.remove('gone');
+  setTimeout(()=>{ov.classList.add('gone');drawMiniMap(loc);},700);
+}
+function drawMiniMap(loc){
+  const ov=document.getElementById('mmap-ov');
+  ov.innerHTML='<div class="msp"></div><div style="font-size:.76rem;color:var(--muted)">Loading…</div>';
+  ov.classList.remove('gone');
+  
+  // Bhubaneswar locality coordinates
+  const locCoords = {
+    'Patia': {lat: 20.3521, lng: 85.8195},
+    'Chandrasekharpur': {lat: 20.3437, lng: 85.8239},
+    'Jaydev Vihar': {lat: 20.3376, lng: 85.8292},
+    'Damana': {lat: 20.3589, lng: 85.8098},
+    'Infocity': {lat: 20.3443, lng: 85.7998},
+    'KIIT Area': {lat: 20.3567, lng: 85.7756},
+    'KISS Area': {lat: 20.3656, lng: 85.7734},
+    'Niladri Vihar': {lat: 20.3498, lng: 85.8178},
+    'Dumduma': {lat: 20.3289, lng: 85.7934},
+    'Aiginia': {lat: 20.3189, lng: 85.7712},
+    'Tamando': {lat: 20.2956, lng: 85.7645},
+    'Nayapalli': {lat: 20.2898, lng: 85.8234},
+    'IRC Village': {lat: 20.2856, lng: 85.8298},
+    'Saheed Nagar': {lat: 20.2934, lng: 85.8445},
+    'Kharavela Nagar': {lat: 20.2712, lng: 85.8456},
+    'Acharya Vihar': {lat: 20.2956, lng: 85.8378},
+    'Vani Vihar': {lat: 20.2989, lng: 85.8334},
+    'Rasulgarh': {lat: 20.2723, lng: 85.8656},
+    'Mancheswar': {lat: 20.2656, lng: 85.8567},
+    'Kalinga Nagar': {lat: 20.2823, lng: 85.8612},
+    'Bomikhal': {lat: 20.2756, lng: 85.8523},
+    'Pokhariput': {lat: 20.2456, lng: 85.8234},
+    'Baramunda': {lat: 20.2656, lng: 85.8123},
+    'Khandagiri': {lat: 20.2523, lng: 85.7934},
+    'Airport Area': {lat: 20.2556, lng: 85.7567},
+    'Railway Station Area': {lat: 20.2679, lng: 85.8446},
+    'AIIMS Bhubaneswar': {lat: 20.3423, lng: 85.7898},
+    'SUM Hospital Area': {lat: 20.3589, lng: 85.7898},
+    'Old Town': {lat: 20.2356, lng: 85.8298},
+    'Lingaraj Area': {lat: 20.2412, lng: 85.8356}
+  };
+  
+  const coords = locCoords[loc] || {lat: 20.2960, lng: 85.8245}; // Default to Bhubaneswar center
+  
+  setTimeout(()=>{
+    ov.classList.add('gone');
+    
+    // Initialize Google Map
+    const mapDiv = document.getElementById('mmap');
+    if (typeof google !== 'undefined' && google.maps) {
+      const map = new google.maps.Map(mapDiv, {
+        center: coords,
+        zoom: 14,
+        mapTypeControl: false,
+        streetViewControl: false,
+        fullscreenControl: false,
+        styles: [
+          {elementType: 'geometry', stylers: [{color: '#04080f'}]},
+          {elementType: 'labels.text.stroke', stylers: [{color: '#04080f'}]},
+          {elementType: 'labels.text.fill', stylers: [{color: '#746855'}]},
+          {featureType: 'road', elementType: 'geometry', stylers: [{color: '#38414e'}]},
+          {featureType: 'road', elementType: 'geometry.stroke', stylers: [{color: '#212a37'}]},
+          {featureType: 'water', elementType: 'geometry', stylers: [{color: '#17263c'}]}
+        ]
+      });
+      
+      // Add marker for the location
+      const marker = new google.maps.Marker({
+        position: coords,
+        map: map,
+        title: loc,
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 10,
+          fillColor: '#9b5cff',
+          fillOpacity: 1,
+          strokeColor: '#ffffff',
+          strokeWeight: 2
+        }
+      });
+      
+      // Add info window
+      const infoWindow = new google.maps.InfoWindow({
+        content: '<div style="color:#000;padding:5px;font-weight:600;">' + loc + '</div>'
+      });
+      
+      marker.addListener('click', function() {
+        infoWindow.open(map, marker);
+      });
+    }
+  },700);
+}
+
+// ══════════════════════════════════════════════════════════
+// RICH LOCATION DATABASE — Anchors + Locality Profile
+// ══════════════════════════════════════════════════════════
+const LOC_DB = {
+  'Patia': {
+    anchors:[{n:'Siksha O Anusandhan (SOA) University',t:'University',i:'🎓'},{n:'ITER College',t:'Engineering College',i:'🏫'},{n:'Patia Square Market',t:'Retail Hub',i:'🛒'},{n:'Reliance Fresh & Big Bazaar',t:'Organised Retail',i:'🏬'},{n:'Patia Bus Stop',t:'Transit Hub',i:'🚌'}],
+    profile:{pop:'~85,000',growth:'North Bhubaneswar\'s fastest-growing residential corridor',income:'Upper-middle',type:'Student + Young Professional',newConstruction:true,footfall:'High (student & residential)'},
+    catBias:{food:{demand:84,competition:52,saturation:44,growth:82,infra:70},education:{demand:90,competition:38,saturation:30,growth:88,infra:74},beauty:{demand:80,competition:44,saturation:36,growth:80,infra:68},tech:{demand:82,competition:40,saturation:32,growth:86,infra:72},services:{demand:78,competition:46,saturation:40,growth:76,infra:66},healthcare:{demand:76,competition:42,saturation:34,growth:74,infra:64}}
+  },
+  'Chandrasekharpur': {
+    anchors:[{n:'Odisha Govt. Secretariat',t:'Admin Hub',i:'🏛️'},{n:'BMC Headquarters',t:'Civic Office',i:'🏢'},{n:'District Court Complex',t:'Legal Hub',i:'⚖️'},{n:'DAV Public School Cluster',t:'School Zone',i:'🏫'},{n:'Residential Colony (Sector-7 to 12)',t:'High-Density Housing',i:'🏘️'}],
+    profile:{pop:'~1,10,000',growth:'Established admin & residential belt',income:'Upper-middle to affluent',type:'Government Officials + Professionals',newConstruction:false,footfall:'Moderate-High'},
+    catBias:{food:{demand:76,competition:62,saturation:58,growth:66,infra:72},finance:{demand:88,competition:38,saturation:30,growth:84,infra:78},education:{demand:82,competition:46,saturation:38,growth:78,infra:74},beauty:{demand:82,competition:48,saturation:40,growth:76,infra:72},healthcare:{demand:80,competition:44,saturation:36,growth:78,infra:72},services:{demand:74,competition:54,saturation:50,growth:68,infra:70}}
+  },
+  'Jaydev Vihar': {
+    anchors:[{n:'National Institute of Technology (NIT)',t:'University',i:'🎓'},{n:'Xavier Institute of Management (XIMB)',t:'B-School',i:'📚'},{n:'Jaydev Vihar Market',t:'Commercial Hub',i:'🏬'},{n:'OCAC IT Tower',t:'IT Hub',i:'💻'},{n:'Café & Restaurant Strip',t:'F&B Zone',i:'🍽️'}],
+    profile:{pop:'~70,000',growth:'Premium residential with elite edu anchor',income:'Affluent',type:'Faculty + IT Professionals + Executives',newConstruction:false,footfall:'High'},
+    catBias:{food:{demand:82,competition:64,saturation:56,growth:74,infra:78},education:{demand:88,competition:40,saturation:32,growth:88,infra:80},beauty:{demand:84,competition:48,saturation:40,growth:80,infra:76},hospitality:{demand:82,competition:46,saturation:38,growth:80,infra:76},healthcare:{demand:80,competition:44,saturation:36,growth:78,infra:76},tech:{demand:84,competition:52,saturation:44,growth:84,infra:78}}
+  },
+  'Damana': {
+    anchors:[{n:'Damana Square',t:'Emerging Commercial',i:'🏬'},{n:'IIIT Bhubaneswar',t:'University',i:'🎓'},{n:'New Residential Projects',t:'Under-Construction Housing',i:'🏗️'},{n:'IT Park Proximity (Infocity 2km)',t:'IT Spillover',i:'💻'},{n:'Patia-Damana NH Corridor',t:'Highway Access',i:'🛣️'}],
+    profile:{pop:'~45,000 (fast growing)',growth:'North corridor\'s next big growth zone',income:'Mid to upper-mid',type:'Young Professionals + New Homeowners',newConstruction:true,footfall:'Moderate (rising rapidly)'},
+    catBias:{food:{demand:86,competition:32,saturation:24,growth:90,infra:58},retail:{demand:84,competition:28,saturation:22,growth:90,infra:54},services:{demand:82,competition:30,saturation:24,growth:88,infra:56},education:{demand:84,competition:30,saturation:24,growth:88,infra:58},healthcare:{demand:82,competition:28,saturation:22,growth:88,infra:54},beauty:{demand:80,competition:30,saturation:24,growth:86,infra:56}}
+  },
+  'Infocity': {
+    anchors:[{n:'Infocity IT Park (Infosys, TCS, Wipro)',t:'MNC IT Hub',i:'💻'},{n:'Mindtree & Hexaware Campuses',t:'IT Companies',i:'🏢'},{n:'Infocity Bus Terminus',t:'Transit Hub',i:'🚌'},{n:'Food Courts (Infosys & TCS Campus)',t:'Captive F&B',i:'🍽️'},{n:'Infocity Apartment Cluster',t:'Residential',i:'🏘️'}],
+    profile:{pop:'~60,000 (daytime 25,000+ employees)',growth:'Odisha\'s premier IT corridor',income:'Salaried IT — ₹6–28LPA',type:'IT Professionals (25–38 yrs)',newConstruction:true,footfall:'Very High (Mon–Sat)'},
+    catBias:{food:{demand:92,competition:48,saturation:42,growth:90,infra:82},services:{demand:90,competition:36,saturation:28,growth:92,infra:80},beauty:{demand:88,competition:40,saturation:32,growth:88,infra:78},hospitality:{demand:86,competition:44,saturation:36,growth:86,infra:78},tech:{demand:82,competition:62,saturation:56,growth:80,infra:80},finance:{demand:86,competition:38,saturation:30,growth:86,infra:76}}
+  },
+  'KIIT Area': {
+    anchors:[{n:'KIIT University (30,000+ students)',t:'University',i:'🎓'},{n:'KIIT Tech Park (20+ companies)',t:'IT Park',i:'💻'},{n:'KISS International School',t:'School',i:'🏫'},{n:'Student Cafeteria Strip (NH-16)',t:'F&B Zone',i:'☕'},{n:'KIIT Residential Flats',t:'Residential',i:'🏢'}],
+    profile:{pop:'~95,000 incl. 30,000 students',growth:'Odisha\'s fastest-growing edu-tech cluster',income:'Mixed — student to IT professional',type:'Students + Faculty + IT Workforce',newConstruction:true,footfall:'Very High'},
+    catBias:{food:{demand:94,competition:58,saturation:48,growth:90,infra:78},education:{demand:88,competition:52,saturation:44,growth:86,infra:78},beauty:{demand:86,competition:46,saturation:38,growth:84,infra:74},services:{demand:88,competition:44,saturation:36,growth:88,infra:76},healthcare:{demand:84,competition:48,saturation:38,growth:82,infra:74},hospitality:{demand:84,competition:48,saturation:40,growth:82,infra:76}}
+  },
+  'KISS Area': {
+    anchors:[{n:'KISS International University',t:'University',i:'🎓'},{n:'KISS School Campus (5,000+ students)',t:'School',i:'🏫'},{n:'KISS Tribal Museum',t:'Cultural Site',i:'🏛️'},{n:'Gandamunda Market',t:'Retail Hub',i:'🛒'},{n:'Institutional Residential Staff Qtrs',t:'Residential',i:'🏘️'}],
+    profile:{pop:'~55,000',growth:'Emerging edu cluster south of KIIT',income:'Mid — faculty & local residential',type:'Students + Faculty + Tribal Visitors',newConstruction:false,footfall:'Moderate'},
+    catBias:{food:{demand:80,competition:44,saturation:36,growth:76,infra:62},education:{demand:84,competition:38,saturation:30,growth:80,infra:66},services:{demand:76,competition:42,saturation:34,growth:74,infra:60},retail:{demand:74,competition:40,saturation:32,growth:72,infra:58},healthcare:{demand:76,competition:38,saturation:30,growth:76,infra:62},beauty:{demand:74,competition:42,saturation:34,growth:72,infra:58}}
+  },
+  'Niladri Vihar': {
+    anchors:[{n:'Niladri Vihar Residential Block (A–H)',t:'High-Density Housing',i:'🏘️'},{n:'Local Bazaar & Daily Market',t:'Retail Hub',i:'🛒'},{n:'School Cluster (3 schools in 2km)',t:'Education Zone',i:'🏫'},{n:'Upcoming Metro Corridor',t:'Transit Infrastructure',i:'🚇'},{n:'Community Health Centre',t:'Healthcare',i:'🏥'}],
+    profile:{pop:'~75,000',growth:'Rapidly densifying north residential pocket',income:'Mid',type:'Families + Government Employees',newConstruction:true,footfall:'Moderate-High'},
+    catBias:{food:{demand:80,competition:50,saturation:44,growth:76,infra:64},services:{demand:78,competition:44,saturation:36,growth:76,infra:62},healthcare:{demand:80,competition:38,saturation:30,growth:78,infra:64},retail:{demand:76,competition:52,saturation:46,growth:70,infra:62},education:{demand:78,competition:40,saturation:32,growth:76,infra:62},beauty:{demand:74,competition:46,saturation:38,growth:72,infra:60}}
+  },
+  'Dumduma': {
+    anchors:[{n:'Dumduma Bus Stand',t:'Transit Hub',i:'🚌'},{n:'FDDI Footwear Campus',t:'Design Institution',i:'🎓'},{n:'Upcoming Bhubaneswar Metro Station',t:'Metro Infrastructure',i:'🚇'},{n:'Dumduma Industrial Area',t:'Small Industry Zone',i:'🏭'},{n:'Residential Colony',t:'Housing',i:'🏘️'}],
+    profile:{pop:'~80,000',growth:'Transit node poised for major value appreciation',income:'Mid',type:'Industrial Workers + Daily Commuters + Families',newConstruction:true,footfall:'High (transit)'},
+    catBias:{food:{demand:80,competition:44,saturation:38,growth:82,infra:62},logistics:{demand:86,competition:36,saturation:28,growth:86,infra:68},services:{demand:78,competition:42,saturation:34,growth:80,infra:62},retail:{demand:76,competition:48,saturation:42,growth:76,infra:60},healthcare:{demand:76,competition:38,saturation:30,growth:78,infra:62},education:{demand:74,competition:40,saturation:32,growth:76,infra:58}}
+  },
+  'Aiginia': {
+    anchors:[{n:'CRPF Group Centre',t:'Paramilitary Institution',i:'🛡️'},{n:'Aiginia Market & NH-16 Access',t:'Highway Commerce',i:'🛣️'},{n:'Upcoming Metro Station',t:'Metro Infrastructure',i:'🚇'},{n:'Residential Projects (5+ active)',t:'Under-Construction Housing',i:'🏗️'},{n:'Regional Grain Market',t:'Agricultural Hub',i:'🌾'}],
+    profile:{pop:'~55,000 (fast growing)',growth:'South periphery gaining infrastructure rapidly',income:'Mid-low to mid',type:'Defence Personnel + Daily Commuters + New Settlers',newConstruction:true,footfall:'Moderate'},
+    catBias:{food:{demand:80,competition:34,saturation:26,growth:86,infra:56},retail:{demand:78,competition:32,saturation:24,growth:84,infra:54},services:{demand:76,competition:30,saturation:22,growth:84,infra:54},healthcare:{demand:78,competition:28,saturation:20,growth:84,infra:54},logistics:{demand:80,competition:28,saturation:20,growth:88,infra:56},education:{demand:76,competition:30,saturation:22,growth:82,infra:52}}
+  },
+  'Tamando': {
+    anchors:[{n:'Tamando Chowk (NH-16 Junction)',t:'Highway Junction',i:'🛣️'},{n:'Multiple Industrial Units',t:'Industrial Zone',i:'🏭'},{n:'Gopalpur Industrial Estate (nearby)',t:'Industrial Hub',i:'🏭'},{n:'New Residential Layouts',t:'Housing',i:'🏗️'},{n:'Weekly Haat Market',t:'Rural Commerce',i:'🛒'}],
+    profile:{pop:'~40,000',growth:'Peripheral industrial growth zone',income:'Mid-low',type:'Industrial Workers + Peri-Urban Families',newConstruction:true,footfall:'Moderate'},
+    catBias:{food:{demand:78,competition:30,saturation:24,growth:82,infra:50},logistics:{demand:84,competition:28,saturation:20,growth:88,infra:54},services:{demand:74,competition:30,saturation:22,growth:80,infra:48},retail:{demand:72,competition:34,saturation:26,growth:78,infra:48},healthcare:{demand:74,competition:28,saturation:20,growth:80,infra:50},education:{demand:72,competition:30,saturation:22,growth:78,infra:48}}
+  },
+  'Nayapalli': {
+    anchors:[{n:'Odisha Legislative Assembly (Secretariat)',t:'Admin Hub',i:'🏛️'},{n:'Nayapalli Market Complex',t:'Commercial Hub',i:'🏬'},{n:'Multiple Govt. Quarter Colonies',t:'Government Residential',i:'🏘️'},{n:'St. Xavier\'s School',t:'School',i:'🏫'},{n:'SBI & Multiple Bank Branches',t:'Finance Hub',i:'🏦'}],
+    profile:{pop:'~1,00,000',growth:'Established premium residential & govt zone',income:'Upper-middle to affluent',type:'Senior Govt Officials + Professionals',newConstruction:false,footfall:'High'},
+    catBias:{food:{demand:80,competition:66,saturation:62,growth:64,infra:78},finance:{demand:86,competition:44,saturation:36,growth:80,infra:82},beauty:{demand:84,competition:52,saturation:44,growth:76,infra:78},healthcare:{demand:82,competition:50,saturation:42,growth:78,infra:80},education:{demand:80,competition:50,saturation:42,growth:76,infra:78},hospitality:{demand:80,competition:54,saturation:46,growth:74,infra:78}}
+  },
+  'IRC Village': {
+    anchors:[{n:'Indian Red Cross Society (IRC)',t:'Humanitarian Hub',i:'🏥'},{n:'SUM Hospital (0.8km)',t:'Hospital Proximity',i:'🏥'},{n:'IRC Village Market',t:'Commercial Strip',i:'🏬'},{n:'Multiple Housing Societies',t:'Premium Residential',i:'🏘️'},{n:'Kalinga Stadium (1km)',t:'Sports Venue',i:'🏟️'}],
+    profile:{pop:'~65,000',growth:'Premium residential near stadium & hospital belt',income:'Upper-middle',type:'Doctors + Professionals + Sports Community',newConstruction:false,footfall:'Moderate-High'},
+    catBias:{food:{demand:80,competition:60,saturation:54,growth:68,infra:76},healthcare:{demand:86,competition:44,saturation:36,growth:80,infra:80},beauty:{demand:84,competition:50,saturation:42,growth:76,infra:76},services:{demand:78,competition:52,saturation:44,growth:70,infra:74},education:{demand:78,competition:48,saturation:40,growth:74,infra:74},hospitality:{demand:80,competition:52,saturation:44,growth:74,infra:76}}
+  },
+  'Saheed Nagar': {
+    anchors:[{n:'Saheed Nagar Market (Major Commercial Hub)',t:'Retail Hub',i:'🏬'},{n:'Multiple Showrooms & Branded Stores',t:'Organised Retail',i:'🛍️'},{n:'Kalinga TV & Media Offices',t:'Media Hub',i:'📺'},{n:'Multiple Private Hospitals',t:'Healthcare',i:'🏥'},{n:'Restaurant Row (MG Road junction)',t:'F&B Zone',i:'🍽️'}],
+    profile:{pop:'~90,000',growth:'Central Bhubaneswar\'s busiest commercial corridor',income:'Mid to upper-mid',type:'Shoppers + Professionals + Residents',newConstruction:false,footfall:'Very High'},
+    catBias:{food:{demand:84,competition:76,saturation:72,growth:64,infra:82},retail:{demand:82,competition:74,saturation:70,growth:62,infra:80},beauty:{demand:84,competition:60,saturation:52,growth:72,infra:80},healthcare:{demand:84,competition:58,saturation:50,growth:76,infra:82},tech:{demand:80,competition:56,saturation:48,growth:74,infra:78},finance:{demand:82,competition:56,saturation:48,growth:72,infra:80}}
+  },
+  'Kharavela Nagar': {
+    anchors:[{n:'Kharavela Nagar Market',t:'Commercial Hub',i:'🏬'},{n:'Orissa High Court (adjacent)',t:'Legal Hub',i:'⚖️'},{n:'Multiple Advocate Chambers',t:'Legal Services',i:'📜'},{n:'Govt. Residential Quarters',t:'Government Housing',i:'🏘️'},{n:'UTI & Financial Offices',t:'Finance Hub',i:'🏦'}],
+    profile:{pop:'~70,000',growth:'Legal and govt. administrative hub',income:'Upper-middle',type:'Lawyers + Govt. Officials + Professionals',newConstruction:false,footfall:'Moderate-High'},
+    catBias:{finance:{demand:90,competition:40,saturation:32,growth:82,infra:80},food:{demand:78,competition:58,saturation:52,growth:66,infra:76},services:{demand:80,competition:50,saturation:42,growth:72,infra:76},beauty:{demand:80,competition:50,saturation:42,growth:72,infra:74},healthcare:{demand:80,competition:48,saturation:40,growth:74,infra:76},hospitality:{demand:80,competition:52,saturation:44,growth:72,infra:76}}
+  },
+  'Acharya Vihar': {
+    anchors:[{n:'Utkal University (50,000+ students)',t:'University',i:'🎓'},{n:'Acharya Vihar Market',t:'Retail Strip',i:'🛒'},{n:'Multiple PG Accommodations',t:'Student Residential',i:'🏠'},{n:'Bhubaneswar Engineering College',t:'College',i:'🏫'},{n:'State Museum (1km)',t:'Cultural Site',i:'🏛️'}],
+    profile:{pop:'~85,000 incl. students',growth:'Classic university belt with dense student pop',income:'Low-mid (student-dominated)',type:'Students + Young Professionals',newConstruction:false,footfall:'High'},
+    catBias:{food:{demand:90,competition:60,saturation:52,growth:80,infra:66},education:{demand:92,competition:44,saturation:36,growth:88,infra:70},beauty:{demand:82,competition:50,saturation:42,growth:78,infra:64},services:{demand:84,competition:46,saturation:38,growth:80,infra:64},hospitality:{demand:84,competition:48,saturation:40,growth:80,infra:66},tech:{demand:80,competition:46,saturation:38,growth:78,infra:64}}
+  },
+  'Vani Vihar': {
+    anchors:[{n:'Utkal University Campus Gate',t:'University',i:'🎓'},{n:'Vani Vihar Bus Stop (OSRTC)',t:'Transit Hub',i:'🚌'},{n:'MG Marg Commercial Strip',t:'Commercial Hub',i:'🏬'},{n:'Student Canteen Cluster',t:'F&B Zone',i:'🍔'},{n:'Govt. Housing Colony',t:'Residential',i:'🏘️'}],
+    profile:{pop:'~75,000',growth:'Dense student-residential pocket adjacent to Utkal',income:'Low-mid',type:'Students + Daily Commuters',newConstruction:false,footfall:'High'},
+    catBias:{food:{demand:88,competition:58,saturation:50,growth:78,infra:64},education:{demand:90,competition:42,saturation:34,growth:86,infra:68},services:{demand:82,competition:44,saturation:36,growth:78,infra:62},beauty:{demand:80,competition:48,saturation:40,growth:74,infra:60},healthcare:{demand:78,competition:42,saturation:34,growth:76,infra:62},retail:{demand:78,competition:54,saturation:46,growth:72,infra:60}}
+  },
+  'Saheed Nagar': {
+    anchors:[{n:'Saheed Nagar Market',t:'Retail Hub',i:'🏬'},{n:'Kalinga TV Studios',t:'Media Hub',i:'📺'},{n:'Private Hospitals Cluster',t:'Healthcare Hub',i:'🏥'},{n:'Restaurant Row',t:'F&B Zone',i:'🍽️'},{n:'Branded Showrooms Strip',t:'Organised Retail',i:'🛍️'}],
+    profile:{pop:'~90,000',growth:'Central commercial hub, high saturation',income:'Mid to upper-mid',type:'Shoppers + Professionals + Mixed',newConstruction:false,footfall:'Very High'},
+    catBias:{beauty:{demand:86,competition:62,saturation:54,growth:72,infra:82},healthcare:{demand:86,competition:56,saturation:48,growth:76,infra:82},tech:{demand:82,competition:56,saturation:48,growth:76,infra:78},finance:{demand:84,competition:54,saturation:46,growth:74,infra:80},education:{demand:80,competition:52,saturation:44,growth:74,infra:78},services:{demand:80,competition:58,saturation:50,growth:70,infra:78}}
+  },
+  'Rasulgarh': {
+    anchors:[{n:'Rasulgarh Industrial Estate (200+ units)',t:'Industrial Zone',i:'🏭'},{n:'Rasulgarh Market (Major Wholesale Hub)',t:'Wholesale Market',i:'🛒'},{n:'Inter-State Bus Terminus (ISBT)',t:'Transit Hub',i:'🚌'},{n:'Residential Colony Blocks',t:'Housing',i:'🏘️'},{n:'Cuttack-Bhubaneswar NH Corridor',t:'Highway Access',i:'🛣️'}],
+    profile:{pop:'~1,20,000',growth:'Industrial-commercial mixed zone, steady growth',income:'Mid',type:'Industrial Workers + Traders + Families',newConstruction:false,footfall:'Very High'},
+    catBias:{food:{demand:84,competition:58,saturation:52,growth:72,infra:68},logistics:{demand:90,competition:38,saturation:30,growth:86,infra:74},services:{demand:82,competition:50,saturation:42,growth:76,infra:68},retail:{demand:80,competition:62,saturation:56,growth:68,infra:68},healthcare:{demand:80,competition:44,saturation:36,growth:76,infra:66},finance:{demand:82,competition:44,saturation:36,growth:76,infra:68}}
+  },
+  'Mancheswar': {
+    anchors:[{n:'Mancheswar Railway Workshop',t:'Railway Industrial Zone',i:'🚂'},{n:'Mancheswar Industrial Estate',t:'Industrial Hub',i:'🏭'},{n:'Mancheswar Market',t:'Retail Hub',i:'🛒'},{n:'Railway Quarters Colony',t:'Government Residential',i:'🏘️'},{n:'Bhubaneswar Eastern Bypass',t:'Highway Access',i:'🛣️'}],
+    profile:{pop:'~95,000',growth:'Industrial belt with large captive workforce',income:'Mid (Railway & Industrial workers)',type:'Railway Employees + Industrial Workers + Families',newConstruction:false,footfall:'Moderate-High'},
+    catBias:{food:{demand:82,competition:46,saturation:40,growth:70,infra:62},services:{demand:82,competition:40,saturation:32,growth:74,infra:62},logistics:{demand:88,competition:34,saturation:26,growth:80,infra:66},retail:{demand:76,competition:54,saturation:48,growth:66,infra:60},healthcare:{demand:78,competition:38,saturation:30,growth:74,infra:62},education:{demand:76,competition:40,saturation:32,growth:72,infra:58}}
+  },
+  'Kalinga Nagar': {
+    anchors:[{n:'Kalinga Nagar Market Complex',t:'Commercial Hub',i:'🏬'},{n:'Kalinga Stadium (nearby)',t:'Sports Venue',i:'🏟️'},{n:'Residential Blocks (A–G)',t:'Housing',i:'🏘️'},{n:'HDFC & Axis Bank Branches',t:'Finance Hub',i:'🏦'},{n:'Multiple Schools & Coaching Centres',t:'Education Zone',i:'🏫'}],
+    profile:{pop:'~80,000',growth:'Steady mid-residential zone near stadium',income:'Mid to upper-mid',type:'Families + Professionals',newConstruction:false,footfall:'Moderate'},
+    catBias:{food:{demand:78,competition:58,saturation:52,growth:66,infra:68},beauty:{demand:80,competition:50,saturation:42,growth:72,infra:68},education:{demand:80,competition:48,saturation:40,growth:74,infra:68},healthcare:{demand:78,competition:46,saturation:38,growth:74,infra:68},services:{demand:76,competition:50,saturation:42,growth:70,infra:66},finance:{demand:80,competition:48,saturation:40,growth:72,infra:68}}
+  },
+  'Bomikhal': {
+    anchors:[{n:'Bomikhal Market',t:'Retail Hub',i:'🛒'},{n:'Ram Mandir Area Commercial Strip',t:'Commercial Hub',i:'🏬'},{n:'Multiple Residential Apartments',t:'Housing',i:'🏘️'},{n:'Bhubaneswar Eastern Bypass Access',t:'Highway',i:'🛣️'},{n:'Private Schools Cluster',t:'Education Zone',i:'🏫'}],
+    profile:{pop:'~70,000',growth:'Growing east-corridor residential cluster',income:'Mid',type:'Families + Young Professionals',newConstruction:true,footfall:'Moderate'},
+    catBias:{food:{demand:80,competition:48,saturation:40,growth:76,infra:62},services:{demand:78,competition:44,saturation:36,growth:74,infra:60},retail:{demand:76,competition:50,saturation:42,growth:72,infra:60},education:{demand:78,competition:44,saturation:36,growth:74,infra:60},beauty:{demand:76,competition:46,saturation:38,growth:72,infra:58},healthcare:{demand:78,competition:40,saturation:32,growth:76,infra:60}}
+  },
+  'Pokhariput': {
+    anchors:[{n:'Pokhariput Market',t:'Retail Hub',i:'🛒'},{n:'Residential Colony',t:'Housing',i:'🏘️'},{n:'Khandagiri Proximity (2km)',t:'Tourist Proximity',i:'🗿'},{n:'Primary Health Centre',t:'Healthcare',i:'🏥'},{n:'Government Schools',t:'Education',i:'🏫'}],
+    profile:{pop:'~60,000',growth:'South residential zone, emerging',income:'Mid-low to mid',type:'Families + Daily Workers',newConstruction:true,footfall:'Moderate'},
+    catBias:{food:{demand:76,competition:42,saturation:34,growth:74,infra:56},retail:{demand:74,competition:40,saturation:32,growth:72,infra:54},services:{demand:74,competition:38,saturation:30,growth:72,infra:54},healthcare:{demand:76,competition:36,saturation:28,growth:74,infra:56},education:{demand:74,competition:38,saturation:30,growth:72,infra:54},beauty:{demand:72,competition:40,saturation:32,growth:70,infra:52}}
+  },
+  'Baramunda': {
+    anchors:[{n:'Baramunda Inter-State Bus Stand',t:'Major Transit Hub',i:'🚌'},{n:'Baramunda Market Complex',t:'Wholesale & Retail',i:'🛒'},{n:'Western Odisha Transport Junction',t:'Transport Hub',i:'🚛'},{n:'Budget Hotels Cluster',t:'Budget Hospitality',i:'🏨'},{n:'Street Food Hub',t:'F&B Zone',i:'🍱'}],
+    profile:{pop:'~85,000 + massive transit footfall',growth:'Transit gateway to western Odisha',income:'Mid-low',type:'Daily Commuters + Traders + Travellers',newConstruction:false,footfall:'Very High (transit)'},
+    catBias:{food:{demand:90,competition:54,saturation:46,growth:80,infra:66},hospitality:{demand:88,competition:42,saturation:34,growth:82,infra:66},logistics:{demand:90,competition:36,saturation:28,growth:86,infra:68},retail:{demand:80,competition:58,saturation:52,growth:70,infra:62},services:{demand:80,competition:46,saturation:38,growth:76,infra:62},finance:{demand:78,competition:44,saturation:36,growth:72,infra:60}}
+  },
+  'Khandagiri': {
+    anchors:[{n:'Khandagiri Caves (ASI Heritage Site)',t:'Tourist Site',i:'🗿'},{n:'Udaygiri Caves',t:'Tourist Site',i:'⛰️'},{n:'Khandagiri Square',t:'Commercial Hub',i:'🏬'},{n:'Jain Temple Cluster',t:'Religious Site',i:'⛩️'},{n:'Residential Colony',t:'Housing',i:'🏘️'}],
+    profile:{pop:'~75,000 + tourist footfall',growth:'Heritage tourism zone with residential growth',income:'Mid',type:'Residents + Domestic Tourists + Pilgrims',newConstruction:false,footfall:'High (tourist)'},
+    catBias:{food:{demand:84,competition:50,saturation:42,growth:74,infra:64},retail:{demand:82,competition:46,saturation:38,growth:72,infra:62},hospitality:{demand:86,competition:40,saturation:32,growth:78,infra:64},beauty:{demand:76,competition:44,saturation:36,growth:70,infra:60},healthcare:{demand:76,competition:40,saturation:32,growth:72,infra:60},services:{demand:74,competition:44,saturation:36,growth:70,infra:58}}
+  },
+  'Airport Area': {
+    anchors:[{n:'Biju Patnaik International Airport',t:'Airport',i:'✈️'},{n:'Cargo & Logistics Terminal',t:'Logistics Hub',i:'📦'},{n:'Hotel Cluster (Novotel, Swissotel)',t:'Premium Hospitality',i:'🏨'},{n:'Car Rental & Taxi Zone',t:'Transport',i:'🚗'},{n:'Airport Approach Commercial Strip',t:'Commercial Hub',i:'🏬'}],
+    profile:{pop:'~50,000 resident + 12,000+ daily travellers',growth:'Premium hospitality & logistics gateway',income:'Affluent travellers + upper-mid residential',type:'Business Travellers + Aviation Staff + Affluent Residents',newConstruction:true,footfall:'Very High'},
+    catBias:{food:{demand:88,competition:56,saturation:48,growth:80,infra:82},hospitality:{demand:90,competition:48,saturation:40,growth:86,infra:84},logistics:{demand:90,competition:44,saturation:36,growth:88,infra:84},services:{demand:84,competition:46,saturation:38,growth:80,infra:80},retail:{demand:82,competition:54,saturation:46,growth:74,infra:78},beauty:{demand:82,competition:50,saturation:42,growth:76,infra:78}}
+  },
+  'Railway Station Area': {
+    anchors:[{n:'Bhubaneswar Railway Station',t:'Railway Station',i:'🚉'},{n:'OSRTC Bus Stand (City)',t:'Transport Hub',i:'🚌'},{n:'Budget Lodges & Guest Houses',t:'Budget Hospitality',i:'🏨'},{n:'Street Market & Daily Bazaar',t:'Retail',i:'🛒'},{n:'Platform & Concourse Food Stalls',t:'F&B Zone',i:'🍱'}],
+    profile:{pop:'~70,000 local + 40,000+ daily transit',growth:'Peak transit activity, stable footfall',income:'Mid-low to mid',type:'Travellers + Daily Commuters + Traders',newConstruction:false,footfall:'Extremely High'},
+    catBias:{food:{demand:92,competition:60,saturation:54,growth:76,infra:68},hospitality:{demand:90,competition:54,saturation:46,growth:76,infra:68},logistics:{demand:86,competition:42,saturation:34,growth:78,infra:66},retail:{demand:82,competition:66,saturation:60,growth:66,infra:64},services:{demand:80,competition:52,saturation:44,growth:72,infra:62},finance:{demand:78,competition:48,saturation:40,growth:68,infra:62}}
+  },
+  'AIIMS Bhubaneswar': {
+    anchors:[{n:'AIIMS Bhubaneswar (All India Institute of Medical Sciences)',t:'Super-Specialty Hospital',i:'🏥'},{n:'AIIMS Medical College',t:'Medical Education',i:'🎓'},{n:'Nursing & Para-Medical Hostels',t:'Residential',i:'🏠'},{n:'Pharmacy & Surgical Stores',t:'Medical Retail',i:'💊'},{n:'Patient Waiting Area Markets',t:'Daily Commerce',i:'🛒'}],
+    profile:{pop:'~45,000 local + 3,000+ daily patients & attendants',growth:'Odisha\'s premier medical hub',income:'Mixed — medical staff (mid-high) to rural patients (low)',type:'Doctors + Medical Students + Patients & Families',newConstruction:true,footfall:'Very High (patient-driven)'},
+    catBias:{healthcare:{demand:94,competition:38,saturation:30,growth:90,infra:84},food:{demand:90,competition:46,saturation:38,growth:82,infra:76},services:{demand:86,competition:40,saturation:32,growth:82,infra:76},hospitality:{demand:88,competition:38,saturation:30,growth:84,infra:76},retail:{demand:82,competition:44,saturation:36,growth:76,infra:72},education:{demand:84,competition:42,saturation:34,growth:84,infra:74}}
+  },
+  'SUM Hospital Area': {
+    anchors:[{n:'SUM Hospital (2,500-bed Super-Specialty)',t:'Tertiary Hospital',i:'🏥'},{n:'SOA University (30,000+ students)',t:'University',i:'🎓'},{n:'Student Hostels & PG Rooms',t:'Residential',i:'🏠'},{n:'Food Court & Canteen Strip',t:'F&B Zone',i:'🍔'},{n:'Medical Shops Row',t:'Pharmacy Hub',i:'💊'}],
+    profile:{pop:'~90,000 incl. students',growth:'Dense hospital-university ecosystem',income:'Mixed — student to medical staff',type:'Medical Students + Patients + Faculty',newConstruction:true,footfall:'Very High'},
+    catBias:{healthcare:{demand:92,competition:44,saturation:36,growth:88,infra:80},food:{demand:90,competition:54,saturation:46,growth:82,infra:76},education:{demand:86,competition:48,saturation:40,growth:84,infra:76},hospitality:{demand:86,competition:44,saturation:36,growth:82,infra:76},services:{demand:84,competition:44,saturation:36,growth:80,infra:74},beauty:{demand:80,competition:46,saturation:38,growth:76,infra:72}}
+  },
+  'Old Town': {
+    anchors:[{n:'Lingaraj Temple (Major Pilgrimage)',t:'Religious Site',i:'🛕'},{n:'Bindu Sagar (Sacred Lake)',t:'Heritage Site',i:'⛩️'},{n:'Old Town Heritage Market',t:'Handicrafts & Antiques',i:'🎨'},{n:'Temples Cluster (64 historic temples)',t:'Tourism Zone',i:'📸'},{n:'Puri-Konark Tourist Circuit Entry',t:'Tourist Gateway',i:'🗺️'}],
+    profile:{pop:'~1,10,000 local + significant pilgrim footfall',growth:'Ancient heritage zone, stable culture-tourism draw',income:'Mid-low (local) + tourist spending',type:'Pilgrims + Domestic Tourists + Old-Resident Families',newConstruction:false,footfall:'High (seasonal peaks)'},
+    catBias:{food:{demand:84,competition:66,saturation:60,growth:64,infra:62},retail:{demand:86,competition:56,saturation:48,growth:68,infra:62},hospitality:{demand:86,competition:44,saturation:36,growth:74,infra:62},beauty:{demand:72,competition:52,saturation:44,growth:62,infra:56},healthcare:{demand:76,competition:44,saturation:36,growth:68,infra:58},finance:{demand:74,competition:48,saturation:40,growth:62,infra:58}}
+  },
+  'Lingaraj Area': {
+    anchors:[{n:'Lingaraj Temple',t:'Religious Site',i:'🛕'},{n:'Temple Street Market',t:'Pilgrimage Retail',i:'🛍️'},{n:'Priest & Flower Vendor Clusters',t:'Religious Commerce',i:'🌺'},{n:'Heritage Guesthouses',t:'Budget Hospitality',i:'🏨'},{n:'Bindu Sagar Proximity',t:'Heritage Zone',i:'⛩️'}],
+    profile:{pop:'~80,000 + daily pilgrims',growth:'Pilgrimage & heritage tourism zone',income:'Low-mid (local) + tourist spending',type:'Pilgrims + Priests + Locals',newConstruction:false,footfall:'High (daily pilgrims)'},
+    catBias:{food:{demand:86,competition:60,saturation:52,growth:66,infra:60},retail:{demand:88,competition:52,saturation:44,growth:70,infra:60},hospitality:{demand:88,competition:42,saturation:34,growth:76,infra:58},healthcare:{demand:74,competition:42,saturation:34,growth:66,infra:56},services:{demand:72,competition:46,saturation:38,growth:64,infra:54},beauty:{demand:68,competition:48,saturation:40,growth:58,infra:50}}
+  }
+};
+
+// Default profile for localities not in DB
+const DEFAULT_PROFILE = {
+  anchors:[{n:'Residential Colony',t:'High-Density Housing',i:'🏘️'},{n:'Local Bazaar',t:'Retail Hub',i:'🛒'},{n:'School / College',t:'Education',i:'🎓'},{n:'Primary Health Centre',t:'Healthcare',i:'🏥'},{n:'Auto & Rickshaw Stand',t:'Transit Point',i:'🛺'}],
+  profile:{pop:'~60,000',growth:'Developing urban pocket',income:'Mid',type:'Families + Daily Commuters',newConstruction:false,footfall:'Moderate'},
+  catBias:{}
+};
+
+// Extra anchor additions for un-mapped locations
+function getExtraAnchors(loc){
+  const extras=[];
+  if(/Nayapalli|IRC|Saheed|Unit [0-9]/.test(loc))extras.push({n:'Govt. Office Complex',t:'Admin Hub',i:'🏛️'});
+  if(/Dumduma|Aiginia|Niladri/.test(loc))extras.push({n:'Upcoming Metro Station',t:'Metro Infrastructure',i:'🚇'});
+  if(/Mancheswar|Rasulgarh|Tamando/.test(loc))extras.push({n:'Industrial Area',t:'Manufacturing Zone',i:'🏭'});
+  if(/Palasuni|Gadakana|Sisupalgarh/.test(loc))extras.push({n:'Peri-Urban Growth Zone',t:'Under Development',i:'🏗️'});
+  if(/Jatni|Sundarpada/.test(loc))extras.push({n:'Sub-Urban Township',t:'Regional Centre',i:'🌆'});
+  if(/Shastri|Bapuji|Satya|Laxmi|Unit/.test(loc))extras.push({n:'Densely Built Residential Belt',t:'Core Residential',i:'🏘️'});
+  return extras;
+}
+
+function getAnchors(loc){
+  const db=LOC_DB[loc];
+  if(db) return db.anchors;
+  const base=[...DEFAULT_PROFILE.anchors];
+  return [...base,...getExtraAnchors(loc)].slice(0,5);
+}
+
+// ══════════════════════════════════════════════════════════
+// RICH LOCATION PROFILE — locality narrative & personality
+// ══════════════════════════════════════════════════════════
+function getLocProfile(loc){
+  return (LOC_DB[loc]||DEFAULT_PROFILE).profile;
+}
+
+// ══════════════════════════════════════════════════════════
+// GAP ANALYSIS ENGINE — location × category aware scoring
+// ══════════════════════════════════════════════════════════
+function getGapProfile(loc, cat, anchors){
+  const at=anchors.map(a=>a.t.toLowerCase());
+  const hasUni=at.some(t=>t.includes('university')||t.includes('college')||t.includes('b-school')||t.includes('education'));
+  const hasHosp=at.some(t=>t.includes('hospital')||t.includes('medical'));
+  const hasIT=at.some(t=>t.includes('it')||t.includes('tech')||t.includes('mnc')||t.includes('software'));
+  const hasTransit=at.some(t=>t.includes('railway')||t.includes('airport')||t.includes('bus')||t.includes('metro')||t.includes('transit'));
+  const hasInd=at.some(t=>t.includes('industrial')||t.includes('manufacturing')||t.includes('workshop'));
+  const hasTour=at.some(t=>t.includes('tourist')||t.includes('heritage')||t.includes('temple')||t.includes('religious')||t.includes('pilgrimage'));
+  const hasGovt=at.some(t=>t.includes('admin')||t.includes('govt')||t.includes('civic')||t.includes('legal')||t.includes('secretariat'));
+  const hasCommercial=at.some(t=>t.includes('retail hub')||t.includes('commercial hub')||t.includes('wholesale'));
+
+  const catKey=(cat||'').toLowerCase().replace(/[^a-z]/g,'').substring(0,8);
+  const locData=LOC_DB[loc];
+
+  // Get base scores from location+category bias if available
+  let demand, competition, saturation, growth, infra;
+  const catMap={
+    'food':'food','retail':'retail','health':'healthcare','healthcare':'healthcare',
+    'educat':'education','tech':'tech','servic':'services','hospita':'hospitality',
+    'beauty':'beauty','logist':'logistics','financ':'finance','realest':'real_estate','other':'other'
+  };
+  const mappedCat=Object.keys(catMap).find(k=>catKey.startsWith(k));
+  const biasKey=mappedCat?catMap[mappedCat]:null;
+
+  if(locData && biasKey && locData.catBias[biasKey]){
+    const b=locData.catBias[biasKey];
+    demand=b.demand; competition=b.competition; saturation=b.saturation; growth=b.growth; infra=b.infra;
+  } else {
+    // Intelligent fallback with anchor signals
+    demand=55; competition=40; saturation=36; growth=62; infra=52;
+    if(hasUni){demand+=16;growth+=12;}
+    if(hasHosp){demand+=12;infra+=8;}
+    if(hasIT){demand+=18;growth+=16;competition+=10;}
+    if(hasTransit){demand+=10;competition+=8;}
+    if(hasInd){infra+=12;demand+=6;}
+    if(hasTour){demand+=8;growth+=6;}
+    if(hasGovt){demand+=8;competition+=6;}
+    if(hasCommercial){competition+=10;saturation+=10;}
+    demand=Math.min(94,demand); competition=Math.min(82,competition);
+    saturation=Math.min(76,saturation); growth=Math.min(92,growth); infra=Math.min(88,infra);
+  }
+
+  // Jitter by location string for uniqueness (no two areas give identical numbers)
+  const seed=loc.split('').reduce((a,c)=>a+c.charCodeAt(0),0);
+  const jitter=(base,range)=>Math.min(98,Math.max(10,base+((seed%(range*2))-range)));
+  demand=jitter(demand,3); competition=jitter(competition,4); saturation=jitter(saturation,4);
+  growth=jitter(growth,3); infra=jitter(infra,4);
+
+  const gapScore=Math.round(100-(saturation*.38+competition*.32-demand*.22));
+  const gapClamped=Math.max(34,Math.min(93,gapScore));
+  const marketScore=Math.min(9.8,+((demand*.34+growth*.34+infra*.2+(100-competition)*.12)/10).toFixed(1));
+
+  const locP=getLocProfile(loc);
+
+  // ── HEADLINE: location × category specific ──
+  const headlines={
+    food:{
+      high:[`${loc}'s ${locP.type} population is severely underserved for quality F&B`,`Significant dining gap identified: ${loc} has rising demand but thin supply`,`${loc}'s anchor density is generating untapped food-service demand`],
+      med:[`Moderate F&B opportunity detected in ${loc} — differentiation is key`,`${loc} shows steady food demand with room for new entrants`],
+      low:[`Crowded F&B market in ${loc} — niche positioning essential`]
+    },
+    healthcare:{
+      high:[`Critical healthcare access gap in ${loc} — demand far outstrips supply`,`${loc}'s ${locP.type} community is medically underserved`,`Clear diagnostic & wellness void detected in ${loc}`],
+      med:[`Moderate healthcare gap in ${loc} — specialization recommended`,`${loc} shows growing health demand with select entry points`],
+      low:[`Saturated primary care in ${loc} — super-speciality niche needed`]
+    },
+    education:{
+      high:[`${loc}'s student density reveals a clear coaching & skill gap`,`Education infrastructure is lagging behind ${loc}'s growing youth population`,`Strong tutoring & upskilling void detected near ${loc}'s institutions`],
+      med:[`Moderate education gap in ${loc} — niche differentiation recommended`,`${loc} shows selective demand for quality coaching`],
+      low:[`High coaching density in ${loc} — specialised courses or test prep needed`]
+    },
+    services:{
+      high:[`${loc}'s ${locP.type} community lacks organised home & professional services`,`Service sector void detected: ${loc} residential density is unmatched by service providers`,`Significant organised services gap identified in ${loc}`],
+      med:[`Moderate services opportunity in ${loc} — brand differentiation is key`,`${loc} shows growing demand for organised services`],
+      low:[`Moderate service saturation in ${loc} — premium positioning needed`]
+    },
+    tech:{
+      high:[`${loc}'s SMB ecosystem is critically underserved on IT & digital infrastructure`,`Tech gap identified: ${loc}'s businesses lack reliable IT support`,`Strong digital services void in ${loc} — first-mover opportunity`],
+      med:[`Growing tech demand in ${loc} — targeted IT services can find traction`,`${loc} shows B2B tech gap for SMEs and startups`],
+      low:[`Active tech competition in ${loc} — product differentiation essential`]
+    },
+    default:{
+      high:[`Significant business void detected in ${loc}`,`${loc} reveals a clear unmet market demand for your sector`,`Strong first-mover opportunity identified in ${loc}`],
+      med:[`Moderate market gap detected in ${loc} — a focused strategy can win`,`${loc} shows measurable unmet demand in this sector`],
+      low:[`Competitive market in ${loc} — entry requires differentiation`]
+    }
+  };
+
+  const catH=headlines[biasKey]||headlines.default;
+  const tier=gapClamped>65?'high':gapClamped>45?'med':'low';
+  const headlineArr=catH[tier]||catH.high;
+  const headline=headlineArr[seed%headlineArr.length];
+
+  // ── SUMMARY: rich, location+category specific ──
+  const anchorNames=anchors.slice(0,2).map(a=>a.n).join(' and ');
+  const competitorLevel=competition<45?'very low competitor density':'moderate competitor presence';
+  const growthSignal=growth>80?'rapid urbanisation and disposable income growth':'steady population and income growth';
+
+  const summaryTemplates=[
+    `BizGap's AI scanned a 5km radius around ${loc} and identified that the ${cat} sector carries a ${gapClamped}% opportunity gap. ${loc} is anchored by ${anchorNames} — generating concentrated demand that current businesses are failing to fully capture. With ${competitorLevel} and ${growthSignal}, this area presents a clear window for early entry. Population profile: ${locP.type} (${locP.pop}).`,
+    `Our demand-supply analysis of ${loc} found a ${gapClamped}% gap in the ${cat} sector. The area's anchor institutions — particularly ${anchorNames} — are driving footfall that the existing ${cat.toLowerCase()} market cannot absorb. ${locP.growth}. Competitor density is ${competition<50?'low, enabling strong first-mover positioning':'moderate, requiring clear differentiation'}. ${locP.type} make up the primary demand base.`,
+    `In ${loc}, the ${cat} sector shows a ${gapClamped}% business void. Anchors like ${anchorNames} generate consistent, recurring demand — but quality supply is absent. ${locP.growth}. With a daily footfall profile of "${locP.footfall}" and a ${locP.income}-income demographic, this gap translates to real, bankable revenue opportunity.`
+  ];
+  const summary=summaryTemplates[seed%3];
+
+  return{
+    gapScore:gapClamped,marketScore,
+    demand,competition,saturation,growth,infra,
+    hasUni,hasHosp,hasIT,hasTransit,hasInd,hasTour,hasGovt,hasCommercial,
+    headline,summary,locP
+  };
+}
+
+// ── SECTOR + SUBCATEGORY ALIGNED OPPORTUNITIES ──
+function buildOpps(loc,cat,gap,anchors){
+  const{hasUni,hasHosp,hasIT,hasTransit,hasInd,hasTour}=gap;
+  const sub=(S.sub||'').toLowerCase();
+
+  // ── SUB-SPECIFIC POOLS (checked first — precise match) ──
+  const subPools={
+
+    // ── FOOD subs ──
+    'cloud kitchen':[
+      {n:'Multi-Brand Cloud Kitchen Hub',w:`Delivery demand in ${loc} is rising 34% YoY. Running 3–4 virtual brands from one kitchen multiplies revenue with zero dine-in overhead — the highest ROI food model available.`,i:'₹6–14L',g:'high',a:'Delivery Infrastructure'},
+      hasIT&&{n:'Corporate Meal Delivery for IT Parks',w:`IT parks generate 1,000+ daily meal orders that remain unserved by organized cloud kitchens. Direct B2B delivery to offices eliminates CAC entirely.`,i:'₹8–18L',g:'high',a:'IT Park Proximity'},
+      hasUni&&{n:'Student Tiffin Cloud Brand',w:`A subscription cloud kitchen targeting ${loc}'s student belt delivers 400–600 meals/day with 80% monthly retention. Low CAC, high repeat.`,i:'₹4–10L',g:'high',a:'Student Demand'},
+      {n:'Diabetic & Diet Meal Kitchen',w:`Rising lifestyle disease awareness creates demand for medically curated meal plans. No organized diet cloud kitchen operates in ${loc}.`,i:'₹5–12L',g:'medium',a:'Health Awareness'},
+    ],
+    'bakery':[
+      {n:'Artisan Bread & Patisserie',w:`Premium baked goods are severely undersupplied in ${loc}. A small-batch bakery targeting health-aware, disposable-income households commands 60–80% gross margins.`,i:'₹8–18L',g:'high',a:'Residential Demographics'},
+      hasIT&&{n:'Corporate Gifting Bakery',w:`IT companies spend heavily on festive gifting. A B2B bakery supplying customized hampers, cakes and boxes to offices near ${loc} builds recurring bulk orders.`,i:'₹5–12L',g:'high',a:'IT Corporate Demand'},
+      hasUni&&{n:'Campus Café-Bakery',w:`Students in ${loc} have no access to affordable fresh-baked snacks. A small walk-in bakery near the campus gate captures 200+ daily buyers.`,i:'₹6–14L',g:'medium',a:'Student Footfall'},
+    ],
+    'restaurant':[
+      hasTour&&{n:'Authentic Odia Heritage Dining',w:`Tourists visiting ${loc}'s landmarks actively seek curated local cuisine. No experience-first Odia restaurant exists near this site — a premium gap.`,i:'₹20–45L',g:'high',a:'Tourism Anchor'},
+      hasIT&&{n:'All-Day Café-Restaurant',w:`IT professionals need a quality sit-down option beyond cafeteria food. A café-restaurant near ${loc}'s tech parks fills the lunch and evening gap.`,i:'₹18–40L',g:'high',a:'IT Park Ecosystem'},
+      {n:'Family Thali Restaurant',w:`Affordable, wholesome thali format is undersupplied vs. residential density in ${loc}. High throughput model with 2–3 seatings/day.`,i:'₹12–25L',g:'medium',a:'Residential Demand'},
+    ],
+    'tiffin service':[
+      hasUni&&{n:'Student Tiffin Subscription',w:`${loc}'s universities generate 500+ meal/day demand. No organized tiffin brand operates within 4km — a direct, recurring revenue gap with near-zero marketing cost.`,i:'₹3–8L',g:'high',a:'Near University'},
+      hasIT&&{n:'Office Tiffin Plan (B2B)',w:`IT professionals pay ₹120–180/meal for reliable, hygienic lunch. A B2B tiffin partner with 3-month subscription lock-in ensures stable cash flow from day one.`,i:'₹4–10L',g:'high',a:'IT Park Proximity'},
+      {n:'Home-Cook Tiffin Network',w:`Aggregating home cooks under a single brand in ${loc} solves supply and quality consistency — a platform model with minimal capital requirement.`,i:'₹2–6L',g:'medium',a:'Residential Base'},
+    ],
+    'cafe':[
+      hasIT&&{n:'Premium Work-Café',w:`IT professionals need a third space — not home, not office. A high-speed WiFi café with specialty coffee near ${loc}'s tech parks fills a daily ritual gap with high per-seat revenue.`,i:'₹15–30L',g:'high',a:'IT Workforce'},
+      hasUni&&{n:'Student Hangout Café',w:`Campus-adjacent cafés in Bhubaneswar operate at 90%+ occupancy. A budget-friendly café near ${loc}'s institutions captures all-day footfall.`,i:'₹8–18L',g:'high',a:'Student Population'},
+      {n:'Specialty Coffee Roastery Café',w:`Third-wave coffee culture is arriving in Bhubaneswar. A single-origin roastery in ${loc} becomes a destination, not just a café — premium pricing with loyal repeat base.`,i:'₹12–22L',g:'medium',a:'Urban Demographics'},
+    ],
+
+    // ── RETAIL subs ──
+    'gift shop':[
+      hasTour&&{n:'Odia Heritage Gifting Store',w:`Tourists and residents in ${loc} seek curated Odia handicrafts, Pattachitra art, and Dhokra metalwork as gifts. No organized gifting destination exists nearby.`,i:'₹6–14L',g:'high',a:'Tourism & Culture'},
+      hasIT&&{n:'Corporate Gift & Hamper Studio',w:`IT companies spend ₹500–5,000 per employee on festive gifting. A B2B gifting studio in ${loc} with customization capability wins bulk annual contracts.`,i:'₹8–18L',g:'high',a:'Corporate Demand'},
+      {n:'Occasion & Celebration Gift Store',w:`Birthdays, weddings and festivals drive year-round gifting demand. A curated, experience-led gift store in ${loc} fills the gap between online delivery and zero local options.`,i:'₹5–12L',g:'high',a:'Residential Density'},
+      hasUni&&{n:'Student Gifting & Stationery Boutique',w:`Students constantly need affordable gifting options — greeting cards, novelty items, planners and custom prints. A compact gifting boutique near ${loc}'s campus sees daily traffic.`,i:'₹3–8L',g:'medium',a:'Student Footfall'},
+      {n:'Personalized Gift & Printing Shop',w:`Demand for customized mugs, photo frames, t-shirts and keychains is rising sharply in ${loc}. In-store personalization drives premium pricing and repeat customers.`,i:'₹4–10L',g:'medium',a:'Urban Demographics'},
+    ],
+    'grocery store':[
+      {n:'Premium Grocery & Daily Essentials Store',w:`Residential density in ${loc} supports a high-throughput grocery store. Modern retail format with home delivery wins over the fragmented kirana competition.`,i:'₹12–28L',g:'high',a:'Residential Demand'},
+      hasUni&&{n:'Student Essentials Mini-Mart',w:`Students need instant noodles, snacks, toiletries and stationery under one roof near their hostel. A well-stocked mini-mart near ${loc}'s campus runs at near-zero idle time.`,i:'₹6–14L',g:'high',a:'Student Population'},
+      {n:'Fruits, Vegetables & Fresh Produce Store',w:`Organized fresh produce retail is absent in most ${loc} micro-zones. A daily-replenished store with home delivery subscription captures the health-conscious segment.`,i:'₹4–10L',g:'medium',a:'Residential Base'},
+    ],
+    'electronics shop':[
+      hasIT&&{n:'IT Peripherals & Pro Gadget Store',w:`IT professionals in ${loc} constantly replace keyboards, mice, monitors, headphones and docking stations. No organized tech retail within 2km — high repeat purchase frequency guaranteed.`,i:'₹12–28L',g:'high',a:'IT Workforce'},
+      hasUni&&{n:'Student Electronics & Accessories Hub',w:`University students need laptops, earphones, data cables, power banks and phone cases regularly. A campus-adjacent electronics hub serves 300+ daily walk-ins.`,i:'₹10–22L',g:'high',a:'Student Population'},
+      {n:'Home Appliance Showroom',w:`Rising household incomes in ${loc} drive demand for ACs, refrigerators and washing machines. No branded electronics showroom exists in 3km — first-mover captures the entire zone.`,i:'₹25–60L',g:'medium',a:'Residential Growth'},
+      {n:'Mobile Repair & Accessories Counter',w:`High device penetration means constant demand for screen replacements, batteries and accessories. A branded repair counter with genuine parts commands premium margins.`,i:'₹4–10L',g:'high',a:'Device Density'},
+    ],
+    'electrical goods':[
+      hasInd&&{n:'Industrial & Commercial Electricals Hub',w:`Industrial estates near ${loc} need bulk wire, switchgear, MCBs, panels and fittings. A B2B electrical goods dealer with credit terms wins contractor loyalty.`,i:'₹15–35L',g:'high',a:'Industrial Zone'},
+      {n:'Home Wiring & Switchgear Retail Store',w:`Rapid construction activity in ${loc} creates sustained demand for wires, switches, sockets and distribution boards. No organized electrical retail in the zone.`,i:'₹10–22L',g:'high',a:'Construction Growth'},
+      {n:'LED Lighting & Energy Solutions Store',w:`Government push for energy efficiency drives LED replacement across ${loc}. A focused LED and smart lighting showroom serves both residential and commercial clients.`,i:'₹8–18L',g:'medium',a:'Residential & Commercial'},
+      hasIT&&{n:'UPS, Inverter & Power Backup Store',w:`Frequent power fluctuations around IT parks and residences in ${loc} create steady demand for UPS units and inverter systems. No specialized store nearby.`,i:'₹10–20L',g:'medium',a:'IT & Residential'},
+    ],
+    'clothing boutique':[
+      hasIT&&{n:'Smart Casuals & Workwear Boutique',w:`IT professionals in ${loc} need smart-casual and business-casual options. A curated menswear/womenswear boutique targeting the 22–38 age bracket fills a real wardrobe gap.`,i:'₹15–30L',g:'high',a:'IT Demographics'},
+      hasUni&&{n:'Youth Fashion & Streetwear Store',w:`5,000+ students near ${loc} have fashion demand but limited access to trendy, affordable clothing. A fast-fashion boutique with social media presence drives organic traffic.`,i:'₹10–20L',g:'high',a:'Student Footfall'},
+      {n:'Women\'s Ethnic & Fusion Wear Boutique',w:`Rising disposable income in ${loc}'s residential zones drives demand for curated ethnic, saree and fusion wear. A boutique with alteration service retains customers long-term.`,i:'₹12–22L',g:'medium',a:'Residential Demographics'},
+    ],
+    'stationery':[
+      hasUni&&{n:'Premium Stationery & Study Hub',w:`University zones need far more than pens and notebooks. A well-stocked stationery store with art supplies, planners, and printing service in ${loc} sees daily repeat traffic.`,i:'₹4–10L',g:'high',a:'Student Population'},
+      {n:'Office Stationery & B2B Supply Store',w:`Businesses in ${loc} need recurring stationery — reams, toners, labels, files and desk accessories. A B2B supply account model creates predictable monthly revenue.`,i:'₹6–14L',g:'medium',a:'Commercial Density'},
+    ],
+    'home decor':[
+      hasIT&&{n:'Modern Home Décor & Lifestyle Store',w:`IT-earning households in ${loc} are renovating and furnishing at scale. A curated home décor store with premium cushions, art and lighting fills the gap between IKEA and local markets.`,i:'₹12–25L',g:'high',a:'IT Demographics'},
+      {n:'Festive Décor & Seasonal Store',w:`Festivals and weddings drive massive short-burst décor demand in ${loc}. A store stocking diyas, lights, rangoli, flower arrangements and theme décor captures high-margin seasonal sales.`,i:'₹6–14L',g:'medium',a:'Residential Density'},
+    ],
+
+    // ── HEALTHCARE subs ──
+    'clinic':[
+      hasUni&&{n:'Student Health & General Wellness Clinic',w:`Universities with 5,000+ students are chronically underserved medically. A partner clinic gets guaranteed footfall and insurance empanelment from day one.`,i:'₹15–40L',g:'high',a:'University Proximity'},
+      hasIT&&{n:'Corporate Preventive Health Clinic',w:`IT companies actively seek annual checkup partners for 1,000+ employees. B2B contracts mean stable, predictable cash flow before you even open.`,i:'₹20–50L',g:'high',a:'IT Park Ecosystem'},
+      {n:'Multi-Specialty Polyclinic',w:`A polyclinic covering GP, paediatrics, gynaecology and ENT under one roof eliminates referral leakage and captures the entire family — the most defensible healthcare model.`,i:'₹30–70L',g:'high',a:'Residential Density'},
+    ],
+    'pharmacy':[
+      hasHosp&&{n:'24×7 Hospital-Proximity Pharmacy',w:`${loc}'s hospital generates prescriptions round the clock. A 24-hour pharmacy within 300m captures emergency and scheduled prescription fills with minimal marketing.`,i:'₹12–25L',g:'high',a:'Hospital Referral'},
+      {n:'Generic Medicine & Wellness Pharmacy',w:`Generic medicine stores undercut branded pharmacies by 30–60%. Rising awareness in ${loc} drives footfall to organized generic stores with pharmacist consultation.`,i:'₹8–18L',g:'medium',a:'Residential Base'},
+    ],
+    'diagnostic lab':[
+      hasHosp&&{n:'Hospital-Linked Diagnostic Lab',w:`Nearby hospitals refer 100+ tests/day that could be captured by an empanelled lab in ${loc}. Referral income + walk-in demand = stable revenue from month one.`,i:'₹20–40L',g:'high',a:'Hospital Referral'},
+      {n:'Home Sample Collection Lab',w:`Pathology demand grows 18% annually in Bhubaneswar. A home-collection diagnostic brand in ${loc} captures the convenience-first patient — no clinic needed.`,i:'₹10–20L',g:'high',a:'Residential Density'},
+    ],
+
+    // ── EDUCATION subs ──
+    'coaching institute':[
+      hasUni&&{n:'Competitive Exam Coaching (UPSC/GATE/CAT)',w:`200+ serious aspirants near ${loc} are unserved by quality coaching. Student density ensures batch viability from month one.`,i:'₹8–18L',g:'high',a:'Academic Population'},
+      hasIT&&{n:'Tech Upskilling Center (AI/Python/Cloud)',w:`IT workforce proximity drives demand for evening courses. B2B tie-ups with IT parks deliver batch bookings before launch.`,i:'₹10–20L',g:'high',a:'IT Park Ecosystem'},
+      {n:'School Tuition & After-School Center',w:`Working parents in ${loc} need reliable after-school academic support. A structured tuition center with subject specialists sees 80%+ annual re-enrollment.`,i:'₹5–12L',g:'medium',a:'Residential Demographics'},
+    ],
+
+    // ── TECH subs ──
+    'it services':[
+      {n:'Managed IT Support for Local SMBs',w:`${loc} businesses pay ₹8,000–25,000/month for reliable IT support. Monthly retainer model provides recurring revenue with zero inventory overhead.`,i:'₹5–15L',g:'high',a:'SMB Ecosystem'},
+      hasIT&&{n:'IT Staffing & Contract Resource Desk',w:`IT parks near ${loc} have perpetual demand for short-term project resources. A contract staffing desk earns placement fees without own infrastructure.`,i:'₹3–8L',g:'high',a:'IT Park Ecosystem'},
+    ],
+    'mobile repair':[
+      {n:'Branded Mobile Repair Studio',w:`High smartphone penetration in ${loc} ensures 50+ repair requests/day. Branded, warranty-backed service with genuine parts commands premium over unorganized shops.`,i:'₹3–8L',g:'high',a:'Device Density'},
+      hasTransit&&{n:'Transit-Zone Quick Repair Kiosk',w:`Transit footfall creates demand for express screen replacements and charging accessories. A kiosk model near ${loc}'s transit point has minimal setup cost with high throughput.`,i:'₹2–5L',g:'high',a:'Transit Footfall'},
+    ],
+    'cctv/security':[
+      {n:'CCTV & Smart Security Installer',w:`New construction and rising safety awareness in ${loc} drive demand for home and business CCTV. No branded installer operates here — first-mover builds contractor referral pipeline.`,i:'₹3–10L',g:'high',a:'Construction Growth'},
+      hasIT&&{n:'Enterprise Access Control & Surveillance',w:`IT offices and commercial buildings near ${loc} need biometric access control, VMS and fire alarm systems. B2B contracts with annual AMC income.`,i:'₹8–20L',g:'medium',a:'IT & Commercial'},
+    ],
+
+    // ── SERVICES subs ──
+    'laundry':[
+      hasIT&&{n:'Subscription Laundry & Dry-Clean Chain',w:`IT professionals outsource all domestic tasks. Subscription-based laundry shows 90%+ monthly retention in comparable zones. No brand operates in ${loc}.`,i:'₹8–18L',g:'high',a:'IT Workforce'},
+      hasUni&&{n:'Student Laundry Hub',w:`Hostellers in ${loc} pay ₹200–400/month for laundry. A pickup-drop laundry service near the campus captures 1,000+ potential subscribers with zero physical store needed.`,i:'₹3–8L',g:'high',a:'Student Population'},
+    ],
+    'car wash':[
+      {n:'Premium Car Wash & Auto-Detailing Studio',w:`4-wheeler ownership in ${loc} is rising sharply. A branded, automated car wash supports 80+ cars/day with subscription packages for monthly repeat revenue.`,i:'₹10–24L',g:'high',a:'Vehicle Density'},
+      hasIT&&{n:'Corporate Fleet Wash Contract',w:`IT companies manage large employee fleets. A contract car wash serving 3–5 companies near ${loc} guarantees daily volume with zero walk-in dependency.`,i:'₹6–14L',g:'medium',a:'IT Corporate'},
+    ],
+
+    // ── BEAUTY subs ──
+    'salon':[
+      hasIT&&{n:'Luxury Unisex Salon & Blow-Bar',w:`IT professionals value premium grooming. No luxury unisex salon within 3km of ${loc} — premium pricing is fully supported by demographics.`,i:'₹20–40L',g:'high',a:'IT Demographics'},
+      hasUni&&{n:'Budget Student Salon',w:`5,000+ students need affordable, trendy grooming. High-volume model at ₹150–250/visit × 80 clients/day = highly profitable at low ticket.`,i:'₹5–12L',g:'high',a:'Student Population'},
+      {n:'Kids\' Salon & Hair Studio',w:`Parents in ${loc} struggle to find a child-friendly, hygienic salon. A dedicated kids\' salon with cartoon décor and gentle stylists commands premium pricing with word-of-mouth growth.`,i:'₹6–14L',g:'medium',a:'Family Residential'},
+    ],
+    'spa':[
+      hasIT&&{n:'Day Spa & Wellness Retreat',w:`Burnout among IT professionals in ${loc} creates demand for massage, body treatments and de-stress packages. No day spa within 5km — premium gap at ₹1,500–4,000/session.`,i:'₹20–45L',g:'high',a:'IT Demographics'},
+      {n:'Ayurvedic Wellness Spa',w:`Growing interest in traditional Ayurvedic therapies in urban Bhubaneswar. A certified Ayurvedic spa in ${loc} attracts health-conscious clients willing to pay premium for authenticity.`,i:'₹15–30L',g:'medium',a:'Health Awareness'},
+    ],
+    'fitness studio':[
+      hasIT&&{n:'Premium Functional Fitness Studio',w:`IT professionals in ${loc} seek structured fitness beyond a basic gym. A studio offering CrossFit, HIIT and personal training at ₹1,500–3,000/month fills the premium gap.`,i:'₹18–35L',g:'high',a:'IT Demographics'},
+      {n:'Women-Only Fitness Studio',w:`Working women in ${loc} prefer gender-exclusive, safe fitness environments. No women-only studio exists in the area — a strong unmet niche.`,i:'₹12–25L',g:'high',a:'Residential Demographics'},
+    ],
+    'yoga center':[
+      {n:'Yoga & Mindfulness Studio',w:`Urban stress and rising wellness awareness drive demand for structured yoga in ${loc}. Morning and evening batch model with membership plans creates predictable monthly revenue.`,i:'₹6–14L',g:'high',a:'Urban Demographics'},
+      hasIT&&{n:'Corporate Yoga & Wellness Program',w:`IT companies near ${loc} actively seek workplace wellness partnerships. B2B yoga contracts with 20–50 employees/company provide guaranteed income with zero walk-in dependency.`,i:'₹3–8L',g:'high',a:'IT Corporate'},
+    ],
+
+    // ── HOSPITALITY subs ──
+    'co-working space':[
+      hasIT&&{n:'Premium Co-working & Private Offices',w:`IT companies need satellite office space and project-based workstations near ${loc}. Flexible co-working with meeting rooms earns ₹4,000–12,000/seat/month.`,i:'₹20–50L',g:'high',a:'IT Park Ecosystem'},
+      hasUni&&{n:'Student Study & Co-working Hub',w:`Students near ${loc} desperately need quiet, high-speed internet study spaces beyond library hours. Nominal membership at ₹500–1,500/month reaches capacity within weeks.`,i:'₹8–16L',g:'high',a:'Student Population'},
+    ],
+
+    // ── LOGISTICS subs ──
+    'courier service':[
+      hasIT&&{n:'B2B Courier for IT & Corporate Offices',w:`IT companies ship laptops, documents and hardware daily. A dedicated B2B courier with SLA guarantees and same-day delivery fills a documented gap in ${loc}.`,i:'₹8–20L',g:'high',a:'IT Ecosystem'},
+      {n:'Hyperlocal Same-Day Delivery',w:`E-commerce returns and local deliveries are growing 40% YoY in Bhubaneswar. A 2-hour delivery service covering ${loc}'s 5km radius commands a courier premium.`,i:'₹6–15L',g:'medium',a:'Urban Demand'},
+    ],
+  };
+
+  // Check for a specific sub-pool match
+  if(sub && subPools[sub]){
+    return subPools[sub].filter(Boolean).slice(0,5);
+  }
+
+  // ── CATEGORY-LEVEL FALLBACK (no sub selected) ──
+  const catPools={
+    food:[
+      hasUni&&{n:'Tiffin Subscription Service',w:`${loc}'s educational institutions generate 500+ meal/day demand. No organized tiffin brand operates within 4km — a direct, recurring revenue gap.`,i:'₹3–8L',g:'high',a:'Near University'},
+      hasIT&&{n:'Quick-Service Health Food Counter',w:`IT professionals (1,000–5,000 in nearby parks) actively seek healthy, fast lunches. Average spend ₹120–200/meal. This gap is significant and growing.`,i:'₹8–18L',g:'high',a:'IT Park Proximity'},
+      hasHosp&&{n:'Medical Diet & Patient Food Service',w:`Patient families staying near hospitals for weeks need diet-specific meals. Entirely untapped in ${loc}.`,i:'₹5–12L',g:'high',a:'Hospital Ecosystem'},
+      hasTransit&&{n:'24×7 Traveller Dhaba',w:`Transit hubs generate round-the-clock foot traffic. The 4–8 AM and post-10 PM window is entirely unserved in this zone.`,i:'₹10–20L',g:'medium',a:'Transit Footfall'},
+      hasTour&&{n:'Authentic Odia Heritage Restaurant',w:`Tourists visiting ${loc}'s landmarks actively seek authentic local cuisine. No curated Odia dining experience exists near this site.`,i:'₹20–45L',g:'medium',a:'Tourism Anchor'},
+      {n:'Multi-Brand Cloud Kitchen',w:`Delivery demand in ${loc} is rising 34% YoY. Running 3 virtual brands from one kitchen multiplies revenue with zero dine-in overhead.`,i:'₹6–14L',g:'high',a:'Delivery Infrastructure'},
+    ],
+    healthcare:[
+      hasUni&&{n:'Student Health & Wellness Clinic',w:`Universities with 5,000+ students are chronically underserved medically. A partner clinic gets guaranteed footfall + insurance billing from day one.`,i:'₹15–40L',g:'high',a:'University Proximity'},
+      hasIT&&{n:'Corporate Preventive Health Center',w:`IT companies actively seek annual health checkup partners. B2B contracts mean stable cash flow before you even open.`,i:'₹20–50L',g:'high',a:'IT Park Ecosystem'},
+      hasHosp&&{n:'Post-Surgical Rehabilitation Center',w:`${loc}'s hospital discharges 50+ post-op patients daily — all needing physiotherapy. No dedicated rehab center within 3km.`,i:'₹25–60L',g:'high',a:'Hospital Referral'},
+      {n:'Diagnostic Lab & Collection Center',w:`Pathology demand grows 18% annually in Bhubaneswar. ${loc}'s residential density supports 200+ tests/day.`,i:'₹18–35L',g:'medium',a:'Residential Density'},
+    ],
+    retail:[
+      {n:'General Retail Store (Neighbourhood Format)',w:`A well-stocked neighbourhood retail store covering daily essentials in ${loc} captures steady walk-in demand from the residential base.`,i:'₹8–20L',g:'medium',a:'Residential Density'},
+      hasUni&&{n:'Student Essentials Store',w:`Universities are captive markets. A single-stop shop for stationery, daily needs and accessories is untapped at scale near ${loc}.`,i:'₹10–25L',g:'high',a:'Student Population'},
+      hasHosp&&{n:'Medical Supplies & Patient Care Store',w:`Patient families need diapers, surgical cotton, BP monitors and walkers. High-margin, daily demand, zero organized competition near ${loc}.`,i:'₹8–20L',g:'high',a:'Hospital Footfall'},
+      {n:'Home Appliance & Electronics Showroom',w:`Rising household income in ${loc} drives demand for branded appliances. No organized outlet in 3km — first-mover advantage.`,i:'₹25–60L',g:'medium',a:'Residential Growth'},
+    ],
+    education:[
+      hasIT&&{n:'Tech Upskilling Center (AI/Python/Cloud)',w:`IT workforce proximity drives strong demand for evening courses. B2B tie-ups with IT parks deliver batch bookings before launch.`,i:'₹10–20L',g:'high',a:'IT Park Ecosystem'},
+      hasUni&&{n:'Competitive Exam Coaching (UPSC/GATE/CAT)',w:`200+ serious aspirants within 3km of ${loc} are unserved by quality coaching. Student density ensures batch viability from month one.`,i:'₹8–18L',g:'high',a:'Academic Population'},
+      {n:'Preschool & Daycare',w:`Young professional families in ${loc} desperately need quality childcare. Working parent density makes this high-demand with exceptional retention.`,i:'₹15–30L',g:'medium',a:'Residential Demographics'},
+      {n:'Foreign Language & Soft Skills Institute',w:`Rising corporate presence increases demand for spoken English and personality development — a gap across all demographics in ${loc}.`,i:'₹5–12L',g:'medium',a:'Corporate Ecosystem'},
+    ],
+    services:[
+      hasIT&&{n:'Premium Laundry & Dry-Clean Chain',w:`IT professionals outsource all domestic tasks. Subscription-based laundry shows 90%+ monthly retention. No brand operates in ${loc}.`,i:'₹8–18L',g:'high',a:'IT Workforce'},
+      {n:'Home Maintenance Platform',w:`Rapid housing development creates massive demand for electricians, plumbers, carpenters under a single trusted brand.`,i:'₹5–12L',g:'high',a:'Construction Growth'},
+      {n:'Premium Car Wash & Auto-Care Studio',w:`Rising 4-wheeler ownership in Bhubaneswar. No organized, branded car wash in ${loc} — yet the residential density fully supports 80+ cars/day.`,i:'₹10–24L',g:'medium',a:'Vehicle Density'},
+      hasUni&&{n:'Print & Copy Services Hub',w:`Students need printing, scanning and binding daily. A quality print hub near ${loc}'s institutions fills a daily friction gap.`,i:'₹3–8L',g:'high',a:'Student Demand'},
+    ],
+    beauty:[
+      hasIT&&{n:'Luxury Unisex Salon & Spa',w:`IT professionals have disposable income and value premium self-care. No luxury salon within 3km of ${loc}.`,i:'₹20–40L',g:'high',a:'IT Demographics'},
+      hasUni&&{n:'Budget Student Salon',w:`5,000+ students need affordable grooming. High-volume model at ₹150–250/visit.`,i:'₹5–12L',g:'high',a:'Student Population'},
+      {n:'Dermatology & Skin Clinic',w:`Growing skin-care awareness + 6-month waitlists at central Bhubaneswar clinics. ${loc} is entirely underserved for dermatology.`,i:'₹25–55L',g:'medium',a:'Healthcare Gap'},
+      {n:'Fitness Studio & Yoga Center',w:`Urban health awareness rising sharply post-2020. A fitness studio in ${loc} captures working professionals and homemakers.`,i:'₹15–30L',g:'medium',a:'Urban Demographics'},
+    ],
+    hospitality:[
+      hasHosp&&{n:'Medical Tourism Service Apartment',w:`Patients from Odisha interiors stay 2–4 weeks near ${loc} hospitals. No organized, affordable service apartment targets this segment.`,i:'₹30–80L',g:'high',a:'Hospital Referral'},
+      hasIT&&{n:'Corporate Co-working Space',w:`IT companies need project-based satellite offices. Flexible co-working fills a real gap — B2B contracts from day one.`,i:'₹20–50L',g:'high',a:'IT Park Ecosystem'},
+      hasTransit&&{n:'Budget Capsule Hotel',w:`Transit travellers need 4–8 hour quick stays near ${loc}'s hubs. Capsule format maximizes revenue per sqft.`,i:'₹25–60L',g:'medium',a:'Transit Footfall'},
+      {n:'Branded Paying Guest Accommodation',w:`Organized PG is massively undersupplied in ${loc}. Students and young professionals pay 30% premium for organized, safe PG.`,i:'₹20–40L',g:'medium',a:'Residential Demand'},
+    ],
+    tech:[
+      {n:'IT Services & Managed Support for SMBs',w:`${loc} businesses struggle with IT. Monthly retainer model provides predictable recurring revenue with very low overhead.`,i:'₹5–15L',g:'high',a:'SMB Ecosystem'},
+      {n:'CCTV & Smart Home Installation',w:`New construction and rising safety awareness driving demand. No branded smart security installer operates in ${loc}.`,i:'₹3–10L',g:'medium',a:'Construction Growth'},
+      hasIT&&{n:'Developer Community Hub',w:`IT park proximity means 500+ freelancers need professional collaboration space with high-speed internet.`,i:'₹15–30L',g:'medium',a:'IT Workforce'},
+      {n:'Mobile & Laptop Repair Studio',w:`Both consumer and B2B demand for device repair is growing in ${loc}. Branded, warranty-backed repair builds trust and recurring business.`,i:'₹3–8L',g:'high',a:'Device Density'},
+    ],
+    logistics:[
+      hasTransit&&{n:'Last-Mile Hyperlocal Delivery',w:`Transit hub proximity = first-mile advantage. A 2-hour hyperlocal delivery service for ${loc} serves a 5km radius with strong unit economics.`,i:'₹10–25L',g:'high',a:'Transit Advantage'},
+      {n:'Mini Warehouse / Dark Store',w:`Q-commerce growing rapidly in Bhubaneswar. A dark store in ${loc} enables 15-min delivery to 5km radius.`,i:'₹15–35L',g:'medium',a:'Delivery Infrastructure'},
+      hasIT&&{n:'B2B Document & Hardware Courier',w:`IT companies ship laptops, documents and hardware daily. A B2B courier with SLA guarantees fills a documented service gap.`,i:'₹8–20L',g:'medium',a:'IT Ecosystem'},
+      {n:'Packing Materials & Supply Store',w:`Growing e-commerce sellers in ${loc} need bubble wrap, boxes and sealing equipment in bulk. No organized packing supplies dealer nearby.`,i:'₹4–10L',g:'medium',a:'SMB Density'},
+    ],
+    finance:[
+      {n:'MSME Loan DSA & Finance Desk',w:`Small business owners in ${loc} struggle to navigate loan applications. High-margin commission model with zero inventory risk.`,i:'₹2–6L',g:'high',a:'SMB Density'},
+      {n:'Tax Filing & CA Services Studio',w:`GST compliance and ITR filing demand grows annually. A walk-in tax studio serves 300+ clients per season at high margins.`,i:'₹4–10L',g:'medium',a:'Business Ecosystem'},
+      hasIT&&{n:'Investment & Wealth Advisory',w:`IT workforce earns well but lacks structured investment advice in ${loc}. A SEBI-registered advisor targeting salaried professionals has zero competition here.`,i:'₹3–8L',g:'high',a:'IT Demographics'},
+      {n:'Insurance Distribution Center',w:`Rising awareness of health and life insurance with no walk-in distribution point in ${loc}. Agency model offers quick breakeven.`,i:'₹2–5L',g:'medium',a:'Residential Density'},
+    ],
+    real_estate:[
+      {n:'Property Rental Management Agency',w:`Non-resident owners in ${loc} need property management. 10% monthly commission on managed portfolio scales fast with near-zero capital.`,i:'₹3–8L',g:'medium',a:'Residential Density'},
+      hasIT&&{n:'Office Interior Build-Out Service',w:`New co-working spaces and office fit-outs are rising sharply near ${loc}. End-to-end B2B interior execution fills a clear professional services gap.`,i:'₹20–45L',g:'medium',a:'IT Park Growth'},
+      {n:'Real Estate Brokerage & Advisory',w:`Rapid residential development in ${loc} creates demand for trusted property consultants. Commission-based model with zero inventory risk.`,i:'₹2–6L',g:'high',a:'Growth Zone'},
+      hasTransit&&{n:'Commercial Space Leasing Desk',w:`Transit-adjacent commercial properties in ${loc} are underrepresented by organized brokers. First-mover builds a lasting pipeline.`,i:'₹3–7L',g:'medium',a:'Transit Growth'},
+    ],
+    other:[
+      {n:'Pet Care & Grooming Studio',w:`Urban pet ownership in Bhubaneswar rose 60% post-2020. ${loc} has zero organized pet grooming or boarding — a clear lifestyle gap.`,i:'₹6–15L',g:'medium',a:'Urban Demographics'},
+      {n:'Specialty Printing & Branding Studio',w:`Local businesses, colleges and events need flex prints, branding and standees constantly. High-margin repeat orders with a clear gap in ${loc}.`,i:'₹8–18L',g:'medium',a:'Business Density'},
+      hasTour&&{n:'Handicrafts & Souvenir Shop',w:`${loc}'s tourist footfall creates reliable demand for authentic Odia handicrafts and souvenirs. No curated retail experience exists for this visitor segment.`,i:'₹5–12L',g:'high',a:'Tourism Anchor'},
+      {n:'Event Space & Banquet Hall',w:`Rising income levels and social events in ${loc} require organized venue options. Walk-in inquiries exceed supply in most zones of Bhubaneswar.`,i:'₹30–70L',g:'medium',a:'Residential Growth'},
+    ],
+  };
+  return(catPools[cat]||catPools.other).filter(Boolean).slice(0,5);
+}
+
+function getSchemes(cat){
+  const base=[
+    {lo:'🏦',n:'PM Mudra Yojana',b:'Collateral-free loans for micro & small businesses. Three tiers: Shishu, Kishor, Tarun.',a:'Up to ₹10 Lakh',lk:'https://www.mudra.org.in'},
+    {lo:'🇮🇳',n:'PMEGP',b:"Prime Minister's Employment Generation Programme. Subsidy on project cost for new ventures in manufacturing and services.",a:'15–35% Capital Subsidy',lk:'https://www.kviconline.gov.in'},
+    {lo:'🚀',n:'Startup Odisha',b:'State government initiative with grants, mentorship and market linkage for Odisha-based startups.',a:'Up to ₹15 Lakh Grant',lk:'https://startupodisha.gov.in'},
+    {lo:'🏛️',n:'Stand-Up India',b:'SC/ST and women entrepreneurs: bank loans for greenfield enterprises.',a:'₹10L – ₹1Cr',lk:'https://www.standupmitra.in'}
+  ];
+  const extra={
+    food:[{lo:'🍽️',n:'PMFME Scheme',b:'PM Formalisation of Micro Food Processing Enterprises. Credit-linked subsidy for food processing.',a:'35% Subsidy, Max ₹10L',lk:'https://pmfme.mofpi.gov.in'}],
+    retail:[{lo:'🛍️',n:'ODISHA MSME Policy',b:'Capital subsidy and interest subvention for retail MSMEs registered in Odisha under the state MSME policy.',a:'15% Capital Subsidy',lk:'https://msme.odisha.gov.in'}],
+    healthcare:[{lo:'💊',n:'PM Ayushman Bharat',b:'Empanel your clinic/lab under AB-PMJAY for guaranteed cashless billing from the government.',a:'Empanelment-Based Revenue',lk:'https://pmjay.gov.in'}],
+    tech:[{lo:'💻',n:'Startup India (DPIIT)',b:'Tax exemptions, fast-track patents and government tender access for recognised startups.',a:'3-Year Tax Holiday + Benefits',lk:'https://www.startupindia.gov.in'}],
+    education:[{lo:'📚',n:'NSDC Skill India',b:'National Skill Development Corporation funding for vocational training centres.',a:'₹5–25L Project Funding',lk:'https://nsdcindia.org'}],
+    logistics:[{lo:'🚚',n:'PM GatiShakti',b:'Integrated logistics scheme for supply chain and last-mile connectivity investments.',a:'Infrastructure Support',lk:'https://gatishaktipm.gov.in'}],
+    finance:[{lo:'💰',n:'SEBI Intermediary License',b:'SEBI-registered investment advisor license enables wealth management services legally and at scale.',a:'Licensed Advisory',lk:'https://sebi.gov.in'}],
+  };
+  return[...base,...(extra[cat]||[])];
+}
+
+// ── ANALYSIS ──
+function startAnalysis(){
+  if(!S.loc)return;
+  document.getElementById('ll').textContent=S.loc;
+  go('pg-load');
+  const steps=document.querySelectorAll('.lstep');
+  steps.forEach((el,i)=>{
+    setTimeout(()=>{
+      el.classList.add('show');
+      if(i>0){const p=steps[i-1];p.classList.add('done-s');p.querySelector('span').textContent='✅';}
+      if(i===steps.length-1){setTimeout(()=>{el.classList.add('done-s');el.querySelector('span').textContent='✅';buildResults();},750);}
+    },i*820+300);
+  });
+}
+
+function buildResults(){
+  const anchors=getAnchors(S.loc);
+  const gap=getGapProfile(S.loc,S.catLabel,anchors);
+  const opps=buildOpps(S.loc,S.cat,gap,anchors);
+  const schemes=getSchemes(S.cat);
+  const cat=S.catLabel||'General';
+  const risk=gap.marketScore>=8.5?{l:'Low Risk',p:22,c:'var(--green)'}:gap.marketScore>=7?{l:'Moderate Risk',p:50,c:'var(--gold)'}:{l:'Elevated Risk',p:74,c:'var(--red)'};
+  const C=2*Math.PI*28;
+  const fill=(gap.marketScore/10)*C;
+  const loc=S.loc;
+
+  document.getElementById('res-loc').textContent=loc;
+  document.getElementById('res-loc-t').textContent=loc;
+  document.getElementById('resnav').textContent='📍 '+loc;
+  document.getElementById('hmap-sub').textContent=`${loc} — 5km radius`;
+
+  // ── BUSINESS OPPORTUNITY GAP HERO ──
+  document.getElementById('bgh-title').textContent=gap.headline;
+  document.getElementById('bgh-sub').textContent=gap.summary;
+
+  // Gauge animation
+  const gapPct=gap.gapScore;
+  const gaugeCirc=2*Math.PI*42;
+  const gaugeDash=Math.round((gapPct/100)*gaugeCirc);
+  const gaugeColor=gapPct>65?'var(--green)':gapPct>45?'var(--amber)':'var(--red)';
+  const gaugeArc=document.getElementById('gauge-arc');
+  if(gaugeArc){
+    gaugeArc.style.stroke=gaugeColor;
+    setTimeout(()=>{gaugeArc.setAttribute('stroke-dasharray',`${gaugeDash} ${gaugeCirc}`);},300);
+  }
+  const gaugeScore=document.getElementById('gauge-score');
+  if(gaugeScore){gaugeScore.textContent=gapPct+'%';gaugeScore.style.color=gaugeColor;}
+  const intensityLabel=gapPct>65?'Strong Market Void':'gapPct>45'?'Moderate Opportunity':'Tight Market';
+  document.getElementById('gap-intensity-label').textContent=gapPct>65?'Strong Market Void':gapPct>45?'Moderate Opportunity':'Tight Market';
+  document.getElementById('gap-narrative').textContent=`${cat} in ${loc} shows a ${gapPct}% gap score — meaning ${gapPct>65?'significant':'moderate'} unmet demand exists relative to current supply. ${gapPct>65?'Entry timing is ideal with low first-mover friction.':'Differentiation strategy will be key to capturing share.'}`;
+
+  // Gap Dimension Bars
+  const bars=[
+    {l:'Unmet Demand',v:gap.demand,c:'#18c49a'},
+    {l:'Market Growth',v:gap.growth,c:'#4f8aff'},
+    {l:'Infrastructure',v:gap.infra,c:'#9b5cff'},
+    {l:'Low Competition',v:100-gap.competition,c:'#d9a84e'},
+    {l:'Low Saturation',v:100-gap.saturation,c:'#e8943a'},
+  ];
+  document.getElementById('gap-dims').innerHTML=bars.map(b=>`
+    <div class="gdim-row">
+      <div class="gdim-lbl">${b.l}</div>
+      <div class="gdim-track"><div class="gdim-fill" style="width:0%;background:${b.c}" data-w="${b.v}"></div></div>
+      <div class="gdim-val">${b.v}%</div>
+    </div>`).join('');
+  setTimeout(()=>{document.querySelectorAll('.gdim-fill').forEach(el=>{el.style.width=el.dataset.w+'%';});},250);
+
+  // Gap Metrics
+  document.getElementById('gap-metrics').innerHTML=`
+    <div class="gm"><div class="gm-val" style="color:var(--green)">${gap.gapScore}<span style="font-size:.9rem;font-weight:400">%</span></div><div class="gm-lbl">Gap Score</div><div class="gm-sub">Opportunity available</div></div>
+    <div class="gm"><div class="gm-val" style="color:var(--accent)">${gap.marketScore}<span style="font-size:.9rem;font-weight:400">/10</span></div><div class="gm-lbl">Market Score</div><div class="gm-sub">Overall attractiveness</div></div>
+    <div class="gm"><div class="gm-val" style="color:var(--gold)">${100-gap.competition}<span style="font-size:.9rem;font-weight:400">%</span></div><div class="gm-lbl">Low Competition</div><div class="gm-sub">Room to enter</div></div>
+    <div class="gm"><div class="gm-val" style="color:var(--accent2)">${gap.growth}<span style="font-size:.9rem;font-weight:400">%</span></div><div class="gm-lbl">Growth Potential</div><div class="gm-sub">5-year trajectory</div></div>
+  `;
+
+  // ── OPPORTUNITIES ──
+  document.getElementById('opp-count').textContent=opps.length+' Found';
+  document.getElementById('opps-list').innerHTML=opps.map((o,i)=>{
+    const badge=o.g==='high'?'badge-high':o.g==='medium'?'badge-med':'badge-low';
+    const bLabel=o.g==='high'?'High Gap':'Moderate Gap';
+    return`<div class="opp-card">
+      <div class="opp-rank">0${i+1}</div>
+      <div class="opp-body">
+        <div class="opp-top">
+          <div class="opp-name">${o.n}</div>
+          <div class="opp-gap-badge ${badge}">${bLabel}</div>
+        </div>
+        <div class="opp-why">${o.w}</div>
+        ${o.a?`<div class="opp-anchor">📍 Anchor: ${o.a}</div>`:''}
+      </div>
+      <div class="opp-meta">
+        <div class="opp-inv-lbl">Est. Investment</div>
+        <div class="opp-inv">${o.i}</div>
+        <div class="opp-risk-dot" style="background:${o.g==='high'?'var(--green)':o.g==='medium'?'var(--gold)':'var(--red)'}"></div>
+      </div>
+    </div>`;}).join('');
+
+  // ── 2-COL GRID ──
+  document.getElementById('two-col-grid').innerHTML=`
+    <div class="rc">
+      <div class="rc-ey">Market Potential</div>
+      <div class="sr-wrap">
+        <div class="sr">
+          <svg width="70" height="70" viewBox="0 0 70 70"><circle cx="35" cy="35" r="28" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="5"/><circle cx="35" cy="35" r="28" fill="none" stroke="var(--accent)" stroke-width="5" stroke-dasharray="${fill} ${C}" stroke-linecap="round"/></svg>
+          <div class="sr-n">${gap.marketScore}</div>
+        </div>
+        <div>
+          <div class="rc-t">${gap.marketScore>=8.5?'Excellent':gap.marketScore>=7?'Very Good':'Promising'} Market</div>
+          <div class="rc-b">${loc} (${gap.locP&&gap.locP.pop?gap.locP.pop:'est. ~60,000'}, ${gap.locP&&gap.locP.income?gap.locP.income+' income':'mid-income'} belt) shows ${gap.marketScore>=8?'strong anchor-supported':'solid'} opportunity. Primary demand base: ${gap.locP&&gap.locP.type?gap.locP.type:'mixed urban'}. ${gap.locP&&gap.locP.growth?gap.locP.growth+'.':''}</div>
+        </div>
+      </div>
+      <div class="tags"><span class="tag tb">${cat}${S.sub?' › '+S.sub:''}</span><span class="tag tn">Score ${gap.marketScore}/10</span></div>
+    </div>
+    <div class="rc">
+      <div class="rc-ey">Risk Assessment</div>
+      <div class="rc-t">${risk.l}</div>
+      <div class="rbar"><div class="rfill" style="width:0%;background:${risk.c}" data-w="${risk.p}"></div></div>
+      <div class="rc-b" style="margin-top:11px">
+        In ${loc}, ${gap.locP&&gap.locP.footfall?'footfall is '+gap.locP.footfall.toLowerCase():'area footfall is moderate'} and income profile is ${gap.locP&&gap.locP.income?gap.locP.income.toLowerCase():'mid'}. Competitor density, anchor support and demand signals indicate a <strong style="color:${risk.c}">${risk.l.toLowerCase()}</strong> environment.
+        ${risk.p<35?'Strong first-mover advantage is available.':risk.p<55?'Differentiation is key to standing out.':'Niche targeting and phased launch recommended.'}
+      </div>
+      <div class="tags"><span class="tag ${risk.p<40?'tn':risk.p<60?'tg':'tr-tag'}">${risk.p}% Risk Index</span><span class="tag tp">5km Radius</span></div>
+    </div>
+    <div class="rc">
+      <div class="rc-ey">Anchor Points Detected</div>
+      <div class="rc-t">Demand Generators — ${loc} (5km)</div>
+      <div class="rc-b" style="margin-bottom:10px">These anchors generate concentrated, repeat demand that your <strong>${cat}</strong> business can directly tap into.</div>
+      <div class="anchs">${anchors.map(a=>{
+        const demandHints={
+          'University':'Student base creates daily recurring demand for food, services & supplies.',
+          'Hospital':'Patient families stay 2–4 weeks, creating steady daily spend.',
+          'IT Hub':'5,000+ salaried professionals with high disposable income.',
+          'MNC Office':'Corporate workforce drives premium service and food demand.',
+          'IT Park':'Daily 8AM–8PM footfall of 10,000+ employees within 3km.',
+          'Transit Hub':'40,000+ daily commuter touchpoints — peak morning & evening.',
+          'Airport':'Business travellers with high per-capita daily spend.',
+          'Railway Station':'Round-the-clock footfall across all income segments.',
+          'Retail Hub':'Existing shopper footfall — high conversion for adjacent businesses.',
+          'Wholesale Market':'B2B buyer traffic — ideal for supply-side or service businesses.',
+          'Admin Hub':'Government staff: stable income, predictable weekday footfall.',
+          'Industrial Zone':'2,000+ blue-collar workers with daily F&B and services need.',
+          'Tourist Site':'Seasonal + weekend tourist spend in retail, food and hospitality.',
+          'Religious Site':'Daily pilgrims generating retail, hospitality and food demand.',
+          'Education Zone':'Student daily necessities create repeat, loyalty-driven demand.',
+        };
+        const hint=Object.keys(demandHints).find(k=>a.t.includes(k));
+        return`<div class="anch"><div class="anch-ic">${a.i}</div><div><div class="anch-n">${a.n}</div><div class="anch-t">${a.t}${hint?'<br><span style="color:var(--green);font-size:.7rem;font-weight:500">↗ '+demandHints[hint]+'</span>':''}</div></div></div>`;
+      }).join('')}</div>
+    </div>
+    <div class="rc">
+      <div class="rc-ey">Government & Bank Schemes</div>
+      <div class="rc-t">Matched Funding Sources</div>
+      <div class="rc-b" style="margin-bottom:10px">Schemes matched to <strong>${cat}</strong> that can reduce your capital requirement.</div>
+      <div class="scs">${schemes.slice(0,4).map(s=>`<div class="sc"><div class="sc-h"><div class="sc-lo">${s.lo}</div><div class="sc-nm">${s.n}</div></div><div class="sc-b">${s.b}</div><div class="sc-amt">✅ ${s.a}</div><a href="${s.lk}" target="_blank" class="sc-lk">Apply →</a></div>`).join('')}</div>
+    </div>
+  `;
+  setTimeout(()=>{document.querySelectorAll('.rfill[data-w]').forEach(el=>{el.style.width=el.dataset.w+'%';});},300);
+
+  setTimeout(()=>{
+    go('pg-res');
+    setTimeout(()=>drawHeatmap(anchors,opps,gap),500);
+    toast('✅','Gap analysis complete — scroll through your insights.');
+  },600);
+}
+
+// ════ GOOGLE MAPS HEATMAP ════
+let heatmapInstance = null;
+let heatmapMarkers = [];
+
+function drawHeatmap(anchors, opps, gap) {
+  const mapDiv = document.getElementById('hmap');
+  const loadingDiv = document.getElementById('hmap-loading');
+  
+  // Get location coordinates
+  const locCoords = {
+    'Patia': {lat: 20.3521, lng: 85.8195},
+    'Chandrasekharpur': {lat: 20.3437, lng: 85.8239},
+    'Jaydev Vihar': {lat: 20.3376, lng: 85.8292},
+    'Damana': {lat: 20.3589, lng: 85.8098},
+    'Infocity': {lat: 20.3443, lng: 85.7998},
+    'KIIT Area': {lat: 20.3567, lng: 85.7756},
+    'KISS Area': {lat: 20.3656, lng: 85.7734},
+    'Niladri Vihar': {lat: 20.3498, lng: 85.8178},
+    'Dumduma': {lat: 20.3289, lng: 85.7934},
+    'Aiginia': {lat: 20.3189, lng: 85.7712},
+    'Tamando': {lat: 20.2956, lng: 85.7645},
+    'Nayapalli': {lat: 20.2898, lng: 85.8234},
+    'IRC Village': {lat: 20.2856, lng: 85.8298},
+    'Saheed Nagar': {lat: 20.2934, lng: 85.8445},
+    'Kharavela Nagar': {lat: 20.2712, lng: 85.8456},
+    'Acharya Vihar': {lat: 20.2956, lng: 85.8378},
+    'Vani Vihar': {lat: 20.2989, lng: 85.8334},
+    'Rasulgarh': {lat: 20.2723, lng: 85.8656},
+    'Mancheswar': {lat: 20.2656, lng: 85.8567},
+    'Kalinga Nagar': {lat: 20.2823, lng: 85.8612},
+    'Bomikhal': {lat: 20.2756, lng: 85.8523},
+    'Pokhariput': {lat: 20.2456, lng: 85.8234},
+    'Baramunda': {lat: 20.2656, lng: 85.8123},
+    'Khandagiri': {lat: 20.2523, lng: 85.7934},
+    'Airport Area': {lat: 20.2556, lng: 85.7567},
+    'Railway Station Area': {lat: 20.2679, lng: 85.8446},
+    'AIIMS Bhubaneswar': {lat: 20.3423, lng: 85.7898},
+    'SUM Hospital Area': {lat: 20.3589, lng: 85.7898},
+    'Old Town': {lat: 20.2356, lng: 85.8298},
+    'Lingaraj Area': {lat: 20.2412, lng: 85.8356}
+  };
+  
+  const centerCoords = locCoords[S.loc] || {lat: 20.2960, lng: 85.8245};
+  
+  // Wait for Google Maps to be ready
+  if (typeof google === 'undefined' || !google.maps) {
+    // Fallback to canvas if Google Maps not available
+    setTimeout(() => drawCanvasHeatmap(anchors, opps, gap), 500);
+    return;
+  }
+  
+  // Clear previous map/markers
+  heatmapMarkers.forEach(m => m.setMap(null));
+  heatmapMarkers = [];
+  if (heatmapInstance) {
+    heatmapInstance.setMap(null);
+    heatmapInstance = null;
+  }
+  
+  // Initialize the map
+  const map = new google.maps.Map(mapDiv, {
+    center: centerCoords,
+    zoom: 13,
+    mapTypeControl: false,
+    streetViewControl: false,
+    fullscreenControl: false,
+    styles: [
+      {elementType: 'geometry', stylers: [{color: '#04080f'}]},
+      {elementType: 'labels.text.stroke', stylers: [{color: '#04080f'}]},
+      {elementType: 'labels.text.fill', stylers: [{color: '#746855'}]},
+      {featureType: 'road', elementType: 'geometry', stylers: [{color: '#38414e'}]},
+      {featureType: 'road', elementType: 'geometry.stroke', stylers: [{color: '#212a37'}]},
+      {featureType: 'water', elementType: 'geometry', stylers: [{color: '#17263c'}]},
+      {featureType: 'poi', elementType: 'labels', stylers: [{visibility: 'off'}]}
+    ]
+  });
+  
+  // Generate heatmap data points based on anchors and opportunities
+  const heatmapData = [];
+  const seed = S.loc.length * 7 + 13;
+  const rng = seeded(seed);
+  
+  // Add competition zones (red - high weight)
+  for (let i = 0; i < 5; i++) {
+    const offsetLat = (rng() - 0.5) * 0.04;
+    const offsetLng = (rng() - 0.5) * 0.04;
+    heatmapData.push({
+      location: new google.maps.LatLng(centerCoords.lat + offsetLat, centerCoords.lng + offsetLng),
+      weight: 0.8 + rng() * 0.4
+    });
+  }
+  
+  // Add partial gap zones (amber - medium weight)
+  for (let i = 0; i < 4; i++) {
+    const offsetLat = (rng() - 0.5) * 0.05;
+    const offsetLng = (rng() - 0.5) * 0.05;
+    heatmapData.push({
+      location: new google.maps.LatLng(centerCoords.lat + offsetLat, centerCoords.lng + offsetLng),
+      weight: 0.5 + rng() * 0.3
+    });
+  }
+  
+  // Add opportunity/business void zones (green - these are the gaps we want to highlight)
+  opps.slice(0, 5).forEach((opp, i) => {
+    const offsetLat = (rng() - 0.5) * 0.03;
+    const offsetLng = (rng() - 0.5) * 0.03;
+    heatmapData.push({
+      location: new google.maps.LatLng(centerCoords.lat + offsetLat, centerCoords.lng + offsetLng),
+      weight: 1.2 + rng() * 0.5
+    });
+  });
+  
+  // Create heatmap layer
+  heatmapInstance = new google.maps.visualization.HeatmapLayer({
+    data: heatmapData,
+    map: map,
+    radius: 35,
+    opacity: 0.7,
+    gradient: [
+      'rgba(0, 255, 0, 0)',
+      'rgba(24, 196, 154, 0.4)',
+      'rgba(24, 196, 154, 0.6)',
+      'rgba(232, 148, 58, 0.7)',
+      'rgba(240, 82, 82, 0.8)',
+      'rgba(240, 82, 82, 1)'
+    ]
+  });
+  
+  // Add anchor point markers (blue)
+  anchors.slice(0, 4).forEach((a, i) => {
+    const offsetLat = ((i % 2) - 0.5) * 0.02 + (Math.floor(i / 2) - 0.5) * 0.02;
+    const offsetLng = ((i % 2) - 0.5) * 0.02;
+    const anchorPos = {
+      lat: centerCoords.lat + offsetLat,
+      lng: centerCoords.lng + offsetLng
+    };
+    
+    const anchorMarker = new google.maps.Marker({
+      position: anchorPos,
+      map: map,
+      title: a.n,
+      icon: {
+        path: google.maps.SymbolPath.CIRCLE,
+        scale: 12,
+        fillColor: '#4f8aff',
+        fillOpacity: 1,
+        strokeColor: '#ffffff',
+        strokeWeight: 2
+      }
+    });
+    
+    const anchorInfo = new google.maps.InfoWindow({
+      content: `<div style="color:#000;padding:5px;font-weight:600;">${a.n}</div><div style="color:#666;font-size:11px;">${a.t}</div>`
+    });
+    
+    anchorMarker.addListener('click', function() {
+      anchorInfo.open(map, anchorMarker);
+    });
+    
+    heatmapMarkers.push(anchorMarker);
+  });
+  
+  // Add center marker (user's location - purple)
+  const userMarker = new google.maps.Marker({
+    position: centerCoords,
+    map: map,
+    title: S.loc,
+    icon: {
+      path: google.maps.SymbolPath.CIRCLE,
+      scale: 14,
+      fillColor: '#9b5cff',
+      fillOpacity: 1,
+      strokeColor: '#ffffff',
+      strokeWeight: 3
+    }
+  });
+  
+  const userInfo = new google.maps.InfoWindow({
+    content: `<div style="color:#000;padding:5px;font-weight:600;">${S.loc}</div><div style="color:#666;font-size:11px;">Your Selected Location</div>`
+  });
+  
+  userMarker.addListener('click', function() {
+    userInfo.open(map, userMarker);
+  });
+  
+  heatmapMarkers.push(userMarker);
+  
+  // Hide loading indicator
+  if (loadingDiv) {
+    loadingDiv.style.display = 'none';
+  }
+}
+
+// Fallback canvas-based heatmap
+function drawCanvasHeatmap(anchors,opps,gap){
+  const wrap=document.getElementById('hmap').parentElement;
+  const c=document.getElementById('hmap');
+  c.width=wrap.offsetWidth;c.height=300;
+  const ctx=c.getContext('2d'),W=c.width,H=300;
+
+  // Base background
+  ctx.fillStyle='#04090f';ctx.fillRect(0,0,W,H);
+
+  // Grid lines
+  ctx.strokeStyle='rgba(79,138,255,.04)';ctx.lineWidth=1;
+  for(let x=0;x<W;x+=52){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=0;y<H;y+=52){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+
+  const rng=seeded(S.loc.length*7+13);
+
+  // Road lines
+  [[0,H*.38,W,H*.38],[W*.42,0,W*.42,H],[0,H*.72,W*.7,H*.62],[W*.6,0,W*.75,H]].forEach(([x1,y1,x2,y2])=>{
+    ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);
+    ctx.strokeStyle='rgba(255,255,255,.07)';ctx.lineWidth=2;ctx.stroke();
+  });
+
+  // RED zones: High Competition
+  for(let i=0;i<5;i++){
+    const x=rng()*W,y=rng()*H,r=30+rng()*55;
+    const g=ctx.createRadialGradient(x,y,0,x,y,r);
+    g.addColorStop(0,'rgba(240,82,82,.45)');
+    g.addColorStop(.5,'rgba(240,82,82,.18)');
+    g.addColorStop(1,'rgba(240,82,82,0)');
+    ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fillStyle=g;ctx.fill();
+    ctx.beginPath();ctx.arc(x,y,5,0,Math.PI*2);ctx.fillStyle='rgba(240,82,82,.7)';ctx.fill();
+  }
+
+  // AMBER zones: Partial Gaps
+  for(let i=0;i<4;i++){
+    const x=rng()*W,y=rng()*H,r=35+rng()*45;
+    const g=ctx.createRadialGradient(x,y,0,x,y,r);
+    g.addColorStop(0,'rgba(232,148,58,.38)');
+    g.addColorStop(.6,'rgba(232,148,58,.12)');
+    g.addColorStop(1,'rgba(232,148,58,0)');
+    ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fillStyle=g;ctx.fill();
+    ctx.beginPath();ctx.arc(x,y,4,0,Math.PI*2);ctx.fillStyle='rgba(232,148,58,.65)';ctx.fill();
+  }
+
+  // GREEN zones: Clear Business Voids
+  opps.slice(0,Math.min(5,opps.length)).forEach((_,i)=>{
+    const x=60+rng()*(W-120),y=50+rng()*(H-100);
+    const r=50+rng()*50;
+    const g=ctx.createRadialGradient(x,y,0,x,y,r);
+    g.addColorStop(0,'rgba(24,196,154,.45)');
+    g.addColorStop(.5,'rgba(24,196,154,.2)');
+    g.addColorStop(1,'rgba(24,196,154,0)');
+    ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fillStyle=g;ctx.fill();
+    ctx.beginPath();ctx.arc(x,y,10,0,Math.PI*2);ctx.fillStyle='rgba(24,196,154,.85)';ctx.fill();
+    ctx.beginPath();ctx.arc(x,y,5,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();
+    ctx.font='500 9px DM Sans,sans-serif';ctx.textAlign='center';ctx.fillStyle='rgba(24,196,154,.9)';
+    ctx.fillText('GAP',x,y-16);
+  });
+
+  // BLUE zones: Anchor Points
+  anchors.slice(0,4).forEach((a,i)=>{
+    const x=70+i*(W-140)/3,y=40+(i%2)*215;
+    const r=44;
+    const g=ctx.createRadialGradient(x,y,0,x,y,r);
+    g.addColorStop(0,'rgba(79,138,255,.42)');
+    g.addColorStop(.6,'rgba(79,138,255,.14)');
+    g.addColorStop(1,'rgba(79,138,255,0)');
+    ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fillStyle=g;ctx.fill();
+    ctx.font='16px serif';ctx.textAlign='center';ctx.fillText(a.i,x,y+6);
+    ctx.font='500 8.5px DM Sans,sans-serif';ctx.fillStyle='rgba(79,138,255,.9)';
+    ctx.fillText(a.n.length>18?a.n.slice(0,16)+'…':a.n,x,y+22);
+  });
+
+  // PURPLE: Center (Your Location)
+  const cx=W/2,cy=H/2;
+  const gc=ctx.createRadialGradient(cx,cy,0,cx,cy,90);
+  gc.addColorStop(0,'rgba(155,92,255,.3)');
+  gc.addColorStop(.5,'rgba(155,92,255,.12)');
+  gc.addColorStop(1,'rgba(155,92,255,0)');
+  ctx.beginPath();ctx.arc(cx,cy,90,0,Math.PI*2);ctx.fillStyle=gc;ctx.fill();
+  ctx.beginPath();ctx.arc(cx,cy,14,0,Math.PI*2);ctx.fillStyle='rgba(155,92,255,.9)';ctx.fill();
+  ctx.beginPath();ctx.arc(cx,cy,7,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();
+  ctx.font='600 11px DM Sans,sans-serif';ctx.textAlign='center';ctx.fillStyle='rgba(255,255,255,.9)';
+  ctx.fillText(S.loc,cx,cy-22);
+  ctx.font='400 9px DM Sans,sans-serif';ctx.fillStyle='rgba(155,92,255,.8)';
+  ctx.fillText('YOU ARE HERE',cx,cy+28);
+
+  // Hide loading
+  const loadingDiv = document.getElementById('hmap-loading');
+  if (loadingDiv) loadingDiv.style.display = 'none';
+}
+
+function seeded(seed){let s=seed;return()=>{s=(s*16807)%2147483647;return(s-1)/2147483646;};}
+
+// ── RESET ──
+function reset(){
+  S.status=null;S.cat=null;S.catLabel=null;S.sub=null;S.loc=null;
+  document.querySelectorAll('.ch,.cat,.sub').forEach(e=>e.classList.remove('sel'));
+  document.getElementById('sub-wrap').innerHTML='';
+  document.getElementById('loc-sel').value='';
+  document.getElementById('mmap-ov').classList.remove('gone');
+  document.getElementById('mmap-ov').innerHTML='<div style="font-size:1.8rem">🗺️</div><div style="font-size:.76rem;color:var(--muted)">Select a locality to preview</div>';
+  document.querySelectorAll('#bs1,#bs2,#bs3').forEach(b=>b.disabled=true);
+  document.querySelectorAll('.lstep').forEach(el=>{el.className='lstep';});
+  go('pg-hero');
+}
+
+// ── TOAST ──
+function toast(ic,msg){
+  const t=document.getElementById('toast');
+  document.getElementById('ti').textContent=ic;document.getElementById('tm').textContent=msg;
+  t.classList.add('show');setTimeout(()=>t.classList.remove('show'),4000);
+}
+</script>
+</body>
+</html>
